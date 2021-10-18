@@ -33,8 +33,9 @@ library(MAST)
 library(Seurat)
 #########################
 
-
+options(repos = BiocManager::repositories())
 options(shiny.maxRequestSize=10000*1024^2)
+
 ui <- fluidPage(
   tags$img(src='https://avatars1.githubusercontent.com/u/8896007?s=400&u=b0029c2e64f405ea0a46d311239b674a430ec77c&v=4'
            ,height='60',width='60', align='left'),
