@@ -1,6 +1,6 @@
 # ezsinglecell
 
-To run ezsinglecell in R, follow the steps below:
+To run ezsinglecell, follow the steps below:
 
 a) Open R (preferably R >= 4.0)
 
