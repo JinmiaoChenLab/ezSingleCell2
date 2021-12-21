@@ -1,4 +1,4 @@
-# ezsinglecell
+# ezSingleCell
 
 To run ezsinglecell, follow the steps below:
 
