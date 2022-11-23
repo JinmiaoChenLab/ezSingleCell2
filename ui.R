@@ -1,2193 +1,3449 @@
 #source("install_R_packages.R")
 library(shiny)
 library(plotly)
-library(ggplot2)
-library(shinyjs)
-library(DT)
-library(devtools)
-library(assertthat)
-library(Seurat)
-#library(SeuratData)
-library(cowplot)
-library(sctransform)
-library(SeuratWrappers)
-library(dplyr)
-library(cytomapper)
-library(data.table)
-library(selectr)
-library(readr)
-library(hdf5r)
-library(future)
-library(CellChat)
-library(tidyverse)
-library(pbmcapply)
-library(monocle3)
-library(leidenbase)
-library(Biobase)
-library(biovizBase)
-library(SingleCellExperiment)
-library(harmony)
-library(MOFA2)
-library(flowCore)
-library(cytofkit2)
-#library(rliger)
-library(miloR)
-library(SingleCellExperiment)
-library(scater)
-library(scran)
-library(dplyr)
-library(patchwork)
-library(Signac)
-library(BayesSpace)
-library(SPOTlight)
-library(EnsDb.Hsapiens.v86)
-library(EnsDb.Hsapiens.v75)
-library(reshape2)
+library(shinythemes)
 library(shinydashboard)
 library(shinyalert)
+library(shinyjs)
+library(shinyBS)
+library(shinycssloaders)
+library(Seurat)
+library(singleseqgset)
+library(harmony)
+library(reticulate)
+library(sceasy)
+library(pheatmap)
+library(liana)
+library(fastTopics)
+library(EnhancedVolcano)
+library(ggplot2)
+library(cowplot)
+library(FastIntegration)
+library(Signac)
+library(BayesSpace)
+library(GenomeInfoDb)
+library(EnsDb.Hsapiens.v86)
+library(data.table)
+library(purrr)
+library(dplyr)
+library(DT)
+library(ggplot2)
+library(car)
+library(nortest)
 library(shinyFiles)
-library(shinyWidgets)
-library(shinythemes)
 
-#import('h5py')
-
-shiny_one_panel = fluidPage(
-                   theme = shinytheme("united"),
-    titlePanel("ezSinglecell : An integrated one-stop single-cell analysis toolbox for bench scientists"),
-    hr(),
-
-    fluidRow(
-        ##------Sidebar---------
-        column(3,
-               #h4('Load Data:'),
-               wellPanel(
-                   selectInput("Module",
-                               label = "Module",
-                               choices = c("Homepage", "Single Cell RNASeq Analysis", "Single cell data integration Analysis", "Single cell multiomics Analysis", "Flow cytometry Analysis", "Imaging mass cytometry Analysis", "Single cell ATAC-seq Analysis", "Spatial Transcriptomics Analysis"),
-                               selected = "Single Cell RNASeq Analysis"),
-
-                   fluidRow(
-                       conditionalPanel(
-                           condition = "input.Module == 'Single Cell RNASeq Analysis' & input.scInput == 'Raw Counts Matrix' & input.Species == 'human'",
-                           column(12,
-                                  actionButton("loadexample_tpm_human", "Load example and run", icon = icon("hand-o-right"))
-                           )),
-
-                       conditionalPanel(
-                           condition = "input.Module == 'Single Cell RNASeq Analysis' & input.scInput == 'H5' & input.Species == 'human'",
-                           column(12,
-                                  actionButton("loadexample_scH5_human", "Load example and run", icon = icon("hand-o-right"))
-                           )),
-
-                       conditionalPanel(
-                           condition = "input.Module == 'Single Cell RNASeq Analysis' & input.scInput == 'Raw Counts Matrix' & input.Species == 'mouse'",
-                           column(12,
-                                  actionButton("loadexample_tpm_mouse", "Load example and run", icon = icon("hand-o-right"))
-                           )),
-
-                       conditionalPanel(
-                           condition = "input.Module == 'Single Cell RNASeq Analysis' & input.scInput == 'H5' & input.Species == 'mouse'",
-                           column(12,
-                                  actionButton("loadexample_scH5_mouse", "Load example and run", icon = icon("hand-o-right"))
-                           )),
-
-                       #br(),
-
-                   ),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single Cell RNASeq Analysis'",
-                       selectInput("scInput",
-                                   label = "Select Data Input Type",
-                                   choices = c("Raw Counts Matrix", "H5"),
-                                   selected = "Raw Counts Matrix")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single Cell RNASeq Analysis' & input.scInput == 'Raw Counts Matrix'",
-                       fileInput("tpmFiles",
-                                 label = "Upload Counts File (Accepted Format: tab delimited text)",
-                                 accept = ".txt")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single Cell RNASeq Analysis' & input.scInput == 'Raw Counts Matrix'",
-                       fileInput("cellAnnoFiles",
-                                 label = "Upload Metadata (Accepted Format: tab delimited text)",
-                                 accept = ".txt")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single Cell RNASeq Analysis' & input.scInput == 'H5'",
-                       fileInput("scH5",
-                                 label = "Upload H5 output from Cellranger (Accepted Format: .h5)",
-                                 accept = ".h5")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'Raw Counts Matrix' || input.scInput1 == 'H5' & input.Species == 'human'",
-                       fluidRow(
-                           actionButton("loadexample1", "Load example and run", icon = icon("hand-o-right"))
-                       )),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell multiomics Analysis' & input.scAnalysis_type == 'CITE-seq' & input.scInput2 == 'H5' & input.Species == 'human'",
-                       fluidRow(
-                           actionButton("loadexample2", "Load example data", icon = icon("hand-o-right"))
-                       )),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell multiomics Analysis' & input.scAnalysis_type == 'mRNA+scATAC-seq' & input.scInput2 == 'H5' & input.scAnalysis_mult == 'Seurat' & input.Species == 'human'",
-                       fluidRow(
-                           actionButton("loadexample2_b", "Load example data", icon = icon("hand-o-right"))
-                       )),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell data integration Analysis'",
-                       selectInput("scInput1",
-                                   label = "Select Data Input Type",
-                                   choices = c("Raw Counts Matrix", "H5"),
-                                   selected = "Raw Counts Matrix")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell data integration Analysis'",
-                       selectInput("scAnalysis_integ",
-                                   label = "Analysis method",
-                                   choices = c("Seurat", "Harmony"),
-                                   selected = "Seurat")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single Cell RNASeq Analysis' || input.Module == 'Single cell data integration Analysis'",
-                       selectInput("Species",
-                                   label = "Select Species",
-                                   choices = c("human", "mouse"),
-                                   selected = "human")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'Raw Counts Matrix'",
-                       fileInput("tpmFiles1",
-                                 label = "Upload Counts File (Accepted Format: tab delimited text)",
-                                 accept = ".txt",
-                                 multiple = T)),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'Raw Counts Matrix'",
-                       fileInput("cellAnnoFiles1",
-                                 label = "Upload Metadata (Accepted Format: tab delimited text)",
-                                 accept = ".txt",
-                                 multiple = T)),
-
-                   #conditionalPanel(
-                   #    condition = "input.Module == 'Single Cell RNASeq Analysis' & input.scInput == 'Raw Counts Matrix' & input.demo_analyse_sc == 'Demo'",
-                   #    selectInput("tpmFiles_demo",
-                   #                label = "Upload Counts File (Accepted Format: tab delimited text)",
-                   #                choices = c(" ", "TPM.txt"),
-                   #                selected = " ")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'H5'",
-                       fileInput("scH5_1",
-                                 label = "Upload H5 output from Cellranger (Accepted Format: .h5)",
-                                 accept = ".h5")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell multiomics Analysis'",
-                       selectInput("scInput2",
-                                   label = "Select Data Input Type",
-                                   choices = "H5",
-                                   selected = "H5")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell multiomics Analysis'",
-                       selectInput("scAnalysis_mult",
-                                   label = "Analysis method",
-                                   choices = c("Seurat", "MOFA"),
-                                   selected = "Seurat")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell multiomics Analysis'",
-                       selectInput("scAnalysis_type",
-                                   label = "scAnalysis type",
-                                   choices = c("CITE-seq", "mRNA+scATAC-seq"),
-                                   selected = "H5")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell multiomics Analysis' & input.scAnalysis_type == 'CITE-seq'",
-                       fileInput("tpmFiles2",
-                                 label = "Upload H5 output from Cellranger (Accepted Format: .h5)",
-                                 multiple = FALSE,
-                                 accept = ".h5")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell multiomics Analysis' & input.scAnalysis_mult == 'MOFA' & input.scAnalysis_type == 'CITE-seq'",
-                       fileInput("meta_mofa",
-                                 label = "Upload Metadata (Accepted Format: .csv)",
-                                 multiple = FALSE,
-                                 accept = c(".csv", ".txt"))),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell multiomics Analysis' & input.scAnalysis_type == 'mRNA+scATAC-seq'",
-                       fileInput(inputId = 'tpmFiles3b',
-                                 label = "Gene expression file",
-                                 accept = ".h5"),
-
-                       conditionalPanel(
-                           condition = "input.Module == 'Single cell multiomics Analysis' & input.scAnalysis_type == 'mRNA+scATAC-seq'",
-                           shinyFiles::shinyFilesButton(id = 'dir_multi_atac', label = "Path to fragments file", title = "Sheets Folder Selector", multiple = T),
-                           verbatimTextOutput("dir_multi_atac", placeholder = TRUE)
-                       )),
-
-                   #fileInput(inputId = 'fragFiles',
-                   #             label = "Fragments file",
-                   #             multiple = FALSE,
-                   #             accept = ".gz"),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell ATAC-seq Analysis'",
-                       fluidRow(
-                           actionButton("loadexample6", "Load example and run", icon = icon("hand-o-right"))
-                       )),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell ATAC-seq Analysis'",
-                       selectInput("scInput_atac",
-                                   label = "Select Data Input Type",
-                                   choices = "H5",
-                                   selected = "H5")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Spatial Transcriptomics Analysis'",
-                       fluidRow(
-                           actionButton("loadexample5", "Load example and run", icon = icon("hand-o-right"))
-                       )),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Spatial Transcriptomics Analysis'",
-                       selectInput("scInput3",
-                                   label = "Select Data Input Type",
-                                   choices = "H5",
-                                   selected = "H5")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Spatial Transcriptomics Analysis'",
-                       shinyFiles::shinyDirButton(id = 'dir', label = "Path to spaceRanger output file", title = "Sheets Folder Selector"),
-                       verbatimTextOutput("dir", placeholder = TRUE)
-                   ),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Flow cytometry Analysis'",
-                       selectInput("demo_analyse_sc",
-                                   label = "Perform demo or analyse",
-                                   choices = c("Demo", "Analysis"),
-                                   selected = "Demo")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Flow cytometry Analysis' & input.demo_analyse_sc == 'Demo'",
-                       fluidRow(
-                           actionButton("loadexample3", "Load example data", icon = icon("hand-o-right"))
-                       )),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Imaging mass cytometry Analysis'",
-                       fluidRow(
-                           actionButton("loadexample4", "Load example data", icon = icon("hand-o-right"))
-                       )),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell ATAC-seq Analysis' & input.scInput_atac == 'H5'",
-                       fileInput("tpmFiles_atac",
-                                 label = "Upload Peak/Cell matrix",
-                                 accept = ".h5")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell ATAC-seq Analysis'",
-                       fileInput("meta_atac",
-                                 label = "Upload Metadata",
-                                 accept = ".csv")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell ATAC-seq Analysis'",
-                       shinyFiles::shinyFilesButton(id = 'dir_atac', label = "Path to fragments file", title = "Sheets Folder Selector", multiple = T),
-                       verbatimTextOutput("dir_atac", placeholder = TRUE)
-                   ),
-
-                   #conditionalPanel(
-                   #    condition = "input.Module == 'Single cell ATAC-seq Analysis'",
-                   #    fileInput("frag_atac",
-                   #              label = "Upload Fragments",
-                   #              accept = ".gz")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Spatial Transcriptomics Analysis'",
-                       fileInput("tpmFiles3",
-                                 label = "Upload H5 output from Spaceranger (Accepted Format: .h5)",
-                                 accept = ".h5")),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single Cell RNASeq Analysis' & input.scInput == 'Raw Counts Matrix' || input.scInput == 'H5'" ,
-
-                       column(6,
-                              numericInput(inputId = "min.genes",
-                                           label = "Min. genes",
-                                           value = 200,
-                                           min = 1)
-                       ),
-                       column(6,
-                              numericInput(inputId = "min.cells",
-                                           label = "Min. cells",
-                                           value = 3,
-                                           min = 1)
-                       ),
-
-                       textInput(inputId = "projName",
-                                 label = "Project Name",
-                                 value = "Seurat_analysis"),
-
-                       fluidRow(
-                           column(6,
-                                  actionButton("loadButton", "Create Seurat Object", icon = icon("hand-o-right"))
-                           ),
-                           column(6,
-                                  actionButton("reset", "Reset", icon = icon("repeat"))
-                           ),
-                       )),
-
-                   conditionalPanel(
-                       condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'Raw Counts Matrix' || input.scInput1 == 'H5'" ,
-
-                       column(6,
-                              numericInput(inputId = "min.genes1",
-                                           label = "Min. genes",
-                                           value = 200,
-                                           min = 1)
-                       ),
-                       column(6,
-                              numericInput(inputId = "min.cells1",
-                                           label = "Min. cells",
-                                           value = 3,
-                                           min = 1)
-                       ),
-
-                       textInput(inputId = "projName1",
-                                 label = "Project Name",
-                                 value = "Seurat_analysis"),
-                       fluidRow(
-                           column(6,
-                                  actionButton("loadButton1", "Create Seurat object", icon = icon("hand-o-right"))
-                           ),
-                           column(6,
-                                  actionButton("reset1", "Reset Data", icon = icon("repeat"))
-                           ),
-
-
-                       )
-                   )),
-
-               conditionalPanel(
-                   condition = "input.Module == 'Single cell multiomics Analysis' & input.scAnalysis_type == 'CITE-seq'" ,
-
-                   textInput(inputId = "projName2",
-                             label = "Project Name",
-                             value = "Seurat_analysis"),
-                   fluidRow(
-                       column(6,
-                              actionButton("loadButton2_a", "Create  Seurat Object", icon = icon("hand-o-right"))
-                       ),
-                       column(6,
-                              actionButton("reset2", "Reset Data", icon = icon("repeat"))
-                       ),
-
-
-                   )
-               ),
-
-               conditionalPanel(
-                   condition = "input.Module == 'Single cell multiomics Analysis' & input.scAnalysis_type == 'mRNA+scATAC-seq'" ,
-
-                   textInput(inputId = "projName2",
-                             label = "Project Name",
-                             value = "Seurat_analysis"),
-                   fluidRow(
-                       column(6,
-                              actionButton("loadButton2_b", "Create  Seurat Object", icon = icon("hand-o-right"))
-                       ),
-                       column(6,
-                              actionButton("reset2", "Reset Data", icon = icon("repeat"))
-                       ),
-
-
-                   )
-               ),
-
-               conditionalPanel(
-                   condition = "input.Module == 'Imaging mass cytometry Analysis'",
-
-                   fluidRow(
-                       ##------Sidebar---------
-                       h4('Load Data:'),
-                       wellPanel(
-                           fileInput(inputId = 'sce',
-                                     label = "Input single cell data",
-                                     multiple = FALSE,
-                                     accept = c(".rds",
-                                                ".RData",
-                                                ".Robj")),
-                           fileInput(inputId = 'mask',
-                                     label = "Input cell mask",
-                                     multiple = FALSE,
-                                     accept = c(".rds",
-                                                ".RData",
-                                                ".Robj")),
-                           fluidRow(
-                               column(6,
-                                      actionButton("loadButton_img", "Load Data", icon = icon("hand-o-right"))
-                               ),
-                               column(6,
-                                      actionButton("reset_img", "Reset Data", icon = icon("repeat"))
-                               )
-                           )
-                       )
-                   )),
-
-               conditionalPanel(
-                   condition = "input.Module == 'Single cell ATAC-seq Analysis' & input.scInput_atac == 'H5'" ,
-
-
-                   column(6,
-                          numericInput(inputId = "min.cells_atac",
-                                       label = "Min. cells",
-                                       value = 3,
-                                       min = 1)
-                   ),
-                   column(6,
-                          numericInput(inputId = "min.features_atac",
-                                       label = "Min. Features",
-                                       value = 200,
-                                       min = 1)
-                   ),
-
-                   textInput(inputId = "projName",
-                             label = "Project Name",
-                             value = "Seurat_ATACseq_analysis"),
-                   fluidRow(
-                       column(6,
-                              actionButton("loadButton_atac", "Create  Seurat Object", icon = icon("hand-o-right"))
-                       ),
-                       column(6,
-                              actionButton("reset_atac", "Reset Data", icon = icon("repeat"))
-                       ),
-                   )),
-
-               conditionalPanel(
-                   condition = "input.Module == 'Spatial Transcriptomics Analysis'" ,
-
-                   textInput(inputId = "projName3",
-                             label = "Project Name",
-                             value = "Seurat_analysis"),
-                   fluidRow(
-                       column(6,
-                              actionButton("loadButton3", "Create  Seurat Object", icon = icon("hand-o-right"))
-                       ),
-                       column(6,
-                              actionButton("reset3", "Reset Data", icon = icon("repeat"))
-                       ),
-
-
-                   )
-               ),
-
-               ##------Plot download---------
-
-               conditionalPanel(
-                   condition = "input.Module == 'Single Cell RNASeq Analysis' && input.scInput == 'Raw Counts Matrix' || input.scInput == 'H5'",
-
-
-                   h4("Export to PDF:"),
-                   wellPanel(
-                       ## Conditional panel for different plots
-                       conditionalPanel(" input.QC == 'QC_panel1' && input.tabs == 'QC plots' ",
-                                        actionButton("PDFa", "Download", icon = icon("download"))
-                       ),
-                       conditionalPanel(" input.QC == 'QC_panel2' && input.tabs == 'QC plots' ",
-                                        actionButton("PDFb", "Download", icon = icon("download"))
-                       ),
-                       conditionalPanel(" input.tabs == 'Normalization and Variable Gene Plot' ",
-                                        actionButton("PDFc", "Download", icon = icon("download"))
-                       ),
-                       conditionalPanel(" input.Pca == 'P_panel1' && input.tabs == 'PCA' ",
-                                        actionButton("PDFd", "Download", icon = icon("download"))
-                       ),
-                       conditionalPanel(" input.Pca == 'P_panel2' && input.tabs == 'PCA' ",
-                                        actionButton("PDFe", "Download", icon = icon("download"))
-                       ),
-                       conditionalPanel(" input.Pca == 'P_panel4' && input.tabs == 'PCA' ",
-                                        actionButton("PDFh", "Download", icon = icon("download"))
-                       ),
-                       conditionalPanel(" input.tabs == 'Clustering' ",
-                                        actionButton("PDFf", "Download", icon = icon("download"))
-                       ),
-                       conditionalPanel(" input.tabs == 'UMAP' ",
-                                        actionButton("PDFi", "Download", icon = icon("download"))
-                       ),
-                       conditionalPanel(" input.tabs == 'TSNE' ",
-                                        actionButton("PDFj", "Download", icon = icon("download"))
-                       ),
-                       conditionalPanel(" input.tabs == 'DEGs' ",
-                                        actionButton("PDFk", "Download", icon = icon("download"))
-                       ),
-
-                       conditionalPanel(
-                           condition = "input.Module == 'Spatial Transcriptomics Analysis' && input.scInput3 == 'H5'",
-
-
-                           h4("Export to PDF:"),
-                           wellPanel(
-                               ## Conditional panel for different plots
-                               conditionalPanel(" input.Spatial_QC == 'Spatial_QC_panel1' && input.tabs == 'Spatial QC plots' ",
-                                                actionButton("PDFa", "Download", icon = icon("download"))
-                               ),
-                               conditionalPanel(" input.Spatial_QC == 'Spatial_QC_panel2' && input.tabs == 'Spatial QC plots' ",
-                                                actionButton("PDFb", "Download", icon = icon("download"))
-                               ),
-                               conditionalPanel(" input.tabs == 'Normalization and Variable Gene Plot' ",
-                                                actionButton("PDFc", "Download", icon = icon("download"))
-                               ),
-                               conditionalPanel(" input.Pca == 'P_panel1' && input.tabs == 'PCA' ",
-                                                actionButton("PDFd", "Download", icon = icon("download"))
-                               ),
-                               conditionalPanel(" input.Pca == 'P_panel2' && input.tabs == 'PCA' ",
-                                                actionButton("PDFe", "Download", icon = icon("download"))
-                               ),
-                               conditionalPanel(" input.Pca == 'P_panel4' && input.tabs == 'PCA' ",
-                                                actionButton("PDFh", "Download", icon = icon("download"))
-                               ),
-                               conditionalPanel(" input.tabs == 'Clustering' ",
-                                                actionButton("PDFf", "Download", icon = icon("download"))
-                               ),
-                               conditionalPanel(" input.tabs == 'UMAP' ",
-                                                actionButton("PDFi", "Download", icon = icon("download"))
-                               ),
-                               conditionalPanel(" input.tabs == 'TSNE' ",
-                                                actionButton("PDFj", "Download", icon = icon("download"))
-                               ),
-                               conditionalPanel(" input.tabs == 'DEGs' ",
-                                                actionButton("PDFk", "Download", icon = icon("download"))
-                               ),
-                           )),
-
-                       ## ensure no spill over in button text
-                       tags$head(
-                           tags$style(HTML('
-                                   .btn {
-                                   white-space: normal;
-                                   }'
-                           )
-                           )
-                       ),
-                       ## Conditional is separate from pdf options
-                       hr(),
-                       fluidRow(
-                           column(6,
-                                  sliderInput(inputId="pdf_w", label = "PDF width(in):",
-                                              min=3, max=20, value=8, width=100, ticks=F)
-                           ),
-                           column(6,
-                                  sliderInput(inputId="pdf_h", label = "PDF height(in):",
-                                              min=3, max=20, value=8, width=100, ticks=F)
-                           )),
-
-                       #actionButton("OpenDir", "Open download folder", icon = icon("folder"))
-                   )),
-
-               ##------Save Data---------
-               conditionalPanel(
-                   condition = "input.Module == 'Single Cell RNASeq Analysis' && input.scInput == 'Raw Counts Matrix' || input.scInput == 'H5'",
-                   hr(),
-                   actionButton("saveButton", "Save Data", icon = icon("hand-o-right")),
-
-                   hr(),
-                   h4(tags$a(href="mailto:Chen_Jinmiao@immunol.a-star.edu.sg?subject=[cytof-question]",
-                             "Contact Us")),
-                   imageOutput("logo", height = "60px")
-               )),
-        ##------Main area---------
-
-        conditionalPanel(
-            condition = "input.Module == 'Homepage'",
-            column(9,
-                   tabsetPanel(type = "pills",
-                               tabPanel("Overview", fluidRow(
+shinyUI(fluidPage(theme = shinytheme("cerulean"),
+                  tagList(tags$head(tags$style(type = 'text/css','.navbar-brand{display:none;}')),             
+    navbarPage("",
+               tabPanel(icon("home"),
+                        titlePanel(h1(p(strong("ezSinglecell : An integrated one-stop single-cell and spatial analysis toolbox for bench scientists")), align = "center")), 
+                        fluidRow(
+                                 column(
                                    br(),
-                                   #img(src='a.jpg',height='300',width='250', align='center'),
-                                   p(strong("ezSinglecell"), "is a web server developed by Jinmiao chen's lab with an intention to empower bench scientists to perform downstream Bioinformatics analysis. ezsinglecell contains 7 modules : ", strong("Single cell RNA-seq, Data Integration, Multiomics, Flow cytometry, Imaging mass cytometry, single cell ATAC-seq and Spatial Transcriptomics."), " These modules are designed in order to help researchers with little or no expertise in Bioinformatics design a hypothesis or answer biological questions.", style="text-align:justify;color:black;background-color:white;padding:20px;border-radius:10px;font-size:15px"),
-                                   p(strong("ezSinglecell is available on", a("GitHub", href = "https://github.com/raman91/ezsinglecell", target = "_blank"), ", if interested in hosting on your own servers.", style="text-align:justify;color:black;background-color:white;padding:20px;border-radius:10px;font-size:15px")),
-                                   p("Please post issues, suggestions and improvements using", a("Issues/suggestions", href = "https://github.com/raman91/ezsinglecell", target = "_blank"), style="text-align:justify;color:black;background-color:white;padding:20px;border-radius:10px;font-size:15px"),
-                                   p("To view other tools and contributions please visit", a("GitHub", href = "https://github.com/JinmiaoChenLab", target = "_blank"), style="text-align:justify;color:black;background-color:white;padding:20px;border-radius:10px;font-size:15px"))),
-
-                               tabPanel("Getting Started", fluidRow(
-                                   p(strong("ezsinglecell"), "is easy to use and is packed with powerful modules to help you analyze your data. Results generated from the modules are loaded on the Result window whereas the Visualization plots are displyed on Visualization windows.", style="text-align:justify;color:black;background-color:white;padding:20px;border-radius:10px;font-size:15px"),
-                                   p(strong("Description of various modules"), style="text-align:justify;color:black;background-color:white;padding:20px;border-radius:10px;font-size:15px"),
-                                   p(strong("Single Cell RNASeq Analysis module"), "is designed to perform single cell RNA-Seq analysis. ezsinglecell uses ", a("Seurat", href = "https://www.cell.com/action/showPdf?pii=S0092-8674%2821%2900583-3", target = "_blank"), "for analyzing single cell RNA-Seq data. In this module, users can input raw counts matrix, H5 output from cellranger or a processed Seurat object. ezsinglecell allows users to download R Objects after processing.", style="text-align:justify;color:black;background-color:white;padding:20px;border-radius:10px;font-size:15px"),
-                                   p(strong("Single Cell RNASeq Integration Analysis module"), "is designed to perform single cell RNA-Seq integration analysis. ezsinglecell uses ", a("Seurat", href = "https://www.cell.com/action/showPdf?pii=S0092-8674%2821%2900583-3", target = "_blank"), "for analyzing single cell RNA-Seq integration data. In this module, users can input raw counts matrix, H5 output from cellranger or a processed Seurat object. ezsinglecell allows users to download R Objects after processing.", style="text-align:justify;color:black;background-color:white;padding:20px;border-radius:10px;font-size:15px"),
-                                   p(strong("Single Cell Multiomics RNASeq Analysis module"), "is designed to perform single cell multiomics RNA-Seq analysis. ezsinglecell uses ", a("Seurat", href = "https://www.cell.com/action/showPdf?pii=S0092-8674%2821%2900583-3", target = "_blank"), "for analyzing single cell multiomics RNA-Seq data. In this module, users can input raw counts matrix, H5 output from cellranger or a processed Seurat object. ezsinglecell allows users to download R Objects after processing.", style="text-align:justify;color:black;background-color:white;padding:20px;border-radius:10px;font-size:15px"),
-                                   p(strong("Flow cytometry module"), "is designed to perform flow cytometry data analysis. ezsinglecell integrates state-of-the-art bioinformatics methods and in-house novel algorithms for data pre-processing, data visualization through linear or non-linear dimensionality reduction (UMAP/tSNE), cell clustering, automatic identification of cell subsets and inference of the relatedness between cell subsets."),
-                                   p(strong("Imaging mass cytometry module"), "is designed to perform imaging mass cytometry data analysis. ezsinglecell is able to analyse high-dimensional imaging mass cytometry data to unravel the cellular composition, spatial architecture from the datasets, interactive visualization of cell subpopulations and progression profiles of key markers."),
-                                   p(strong("Single cell ATAC-seq module"), "is designed to perform single cell ATAC-seq data analysis."),
-                                   p(strong("Spatial Transcriptomics module"), "is designed to perform spatial transcriptomics data analysis."),
-                               )),
-                               tabPanel("What's New in ezsinglecell", fluidRow(
-                                   p(strong("Changelog"), style="text-align:justify;color:black;background-color:white;padding:20px;border-radius:10px;font-size:25px"),
-                                   p(strong("Version 1.0 Log:"), "ezsinglecell has 7 modules (single cell RNA-seq, Data Integration, Multiomics, Flow cytometry, Imaging mass cytometry, single cell ATAC-seq and Spatial Transcriptomics) and is built with an idea to empower researchers in performing bioinformatics analysis with little or no bioinformatics expertise", style="text-align:justify;color:black;background-color:white;padding:20px;border-radius:10px;font-size:15px")))
-                   )
-            )
-        ),
-
-        conditionalPanel(
-            condition = "input.Module == 'Single Cell RNASeq Analysis'",
-            column(9,
-                   tabsetPanel(type = "pills", id = "tabs",
-                               ## add file preview tab
-
-                               ##------QC plots---------
-
-                               tabPanel("QC plots", fluidPage(
-                                   hr(),
-                                   tabsetPanel(id="QC",
-                                               tabPanel(title="Violin Plots", value = "QC_panel1",
-                                                        br(),
-                                                        fluidRow(
-                                                            column(6,
-                                                                   plotlyOutput("nFeature_RNAPlot", width = "100%"),
+                                   
+                                   p(strong("ezSingleCell"), "is an integrated one-stop single-cell and spatial analysis toolbox developed by Chen Jinmiao's lab with an intention to empower bench scientists to perform downstream Bioinformatics analysis. In the current version, we incorporate 5 modules : Single cell RNA-seq, Single cell Data Integration, Single cell Multiomics, Single Cell ATAC-seq and Spatial Transcriptomics.", style="text-align:justify;color:black;font-size:15px"),
+                                   
+                                   imageOutput("demo_image"),
+                                   br(),
+                                   br(),
+                                   br(),
+                                   p("In this web server, we combine in-house novel algorithms such as CELLiD (for cell type identification), along with existing top performing methods for both basic and advanced downstream analyses such as batch effect removal, trajectory, cell-cell communication, differential abundance, and spatial deconvolution.", style="text-align:justify;color:black;font-size:15px"),
+                                   p("Currently ezSingleCell supports inputs in different formats such as text, csv or 10X cell ranger output.  ezSingleCell is also available as a software package with a" , a("ShinyApp interface", href = "https://github.com/JinmiaoChenLab/ezSingleCell2", target = "_blank"), ",that can be run on a computer with basic memory requirements", style="text-align:justify;color:black;font-size:15px"),
+                                   p("The toolkit uses example data from", a("DISCO", href = "https://www.immunesinglecell.org/", target="_blank"),"that contains data from 6141 samples, covering 107 tissues/cell lines/organoids, 158 diseases, and 20 platforms.", style="text-align:justify;color:black;font-size:15px"), width=12)),
+                    
+                            
+                   # p(em("Developed by"),br("CJM Lab"),style="text-align:center; font-family: times")
+                        ),
+               tabPanel("Single cell RNA-Sequencing",
+                        
+                        navlistPanel(widths=c(2,10),
+                                     tabPanel("Overview",
+                                              h2(p("Workflow for scRNA-seq module")),
+                                              br(),
+                                              imageOutput("scrna_image"),         
+                                     ),
+                                     tabPanel("Upload your data",
+                                              
+                                              column(9,
+                                                     column(5,
+                                                            #h4('Load Data:'),
+                                                            wellPanel(
+                                                              titlePanel(h4(p("Load your input data"))),
+                                                              br(),
+                                                              selectInput("scInput",
+                                                                          label = "Select Data Input Type",
+                                                                          choices = c("Raw Counts Matrix", "10X cellranger", "rds object"),
+                                                                          selected = "Raw Counts Matrix"),
+                                                              conditionalPanel(
+                                                                condition = "input.scInput == 'Raw Counts Matrix'",
+                                                                fileInput("tpmFiles",
+                                                                          label = "Counts File (Accepted Format: text)",
+                                                                          accept = ".txt")),
+                                                              conditionalPanel(
+                                                                condition = "input.scInput == '10X cellranger'",
+                                                                fileInput("scH5",
+                                                                          label = "Cellranger output (Accepted Format: .h5)",
+                                                                          accept = ".h5")),
+                                                              conditionalPanel(
+                                                                condition = "input.scInput == 'rds object'",
+                                                                fileInput("rds",
+                                                                          label = "Seurat Object (Accepted Format: .rds)",
+                                                                          accept = ".rds")),
+                                                                textInput(inputId = "projName",
+                                                                          label = "Project Name",
+                                                                          value = "scRNA"),
+                                                              
+                                                              fluidRow(
+                                                                actionButton("loadButton", "Load data", icon = icon("hand-o-right")),
+                                                                actionButton("reset_scRNA", "Reset", icon = icon("repeat"))
+                                                              ),
+                                                            )),
+                                                     
+                                                     column(3,
+                                                            numericInput(inputId = "min.genes",
+                                                                         label = "Min. genes",
+                                                                         value = 200,
+                                                                         min = 1)
+                                                     ),
+                                                     column(3,
+                                                            numericInput(inputId = "min.cells",
+                                                                         label = "Min. cells",
+                                                                         value = 3,
+                                                                         min = 1)
+                                                     ),
+                                                     
+                                                     column(3,
+                                                     actionButton("create_seurat", "Process", icon = icon("hand-o-right"))
+                                                     ),
+                                                     
+                                                     
+                                     ),
+                                     
+                                       column(12,
+                                              withSpinner(dataTableOutput('countdataDT')),
+                                       
+                                     downloadButton('downloadCount', 'Download Table'))),
+                                     
+                                     tabPanel("Violin Plot",
+                                              
+                                                column(3,
+                                                       plotOutput("nFeature_RNAPlot")
+                                                ),
+                                                column(3,
+                                                       plotOutput("mitoPlot")
+                                                ),
+                                                column(3,
+                                                       plotOutput("nCount_RNAPlot")
+                                                ),
+                                                
+                                              
+                                             
+                                                column(12,
+                                                       column(3,
+                                                       downloadButton('download_nFeature_RNA', 'Download nFeature (as png)'),
+                                                       ),
+                                                       column(3,
+                                                       downloadButton('download_mito', 'Download mito (as png)'),
+                                                       ),
+                                                       column(3,
+                                                       downloadButton('download_nCount_RNA', 'Download nCount (as png)'),   
+                                                       ),
+                                                
+                                                br(),
+                                                br(),
+                                                
+                                                    ),
+                                                ),
+                                     tabPanel("Feature Scatter Plot",
+                                              column(5,
+                                                     plotlyOutput("FeatureScatterPlot1")
+                                              ),
+                                              column(5,
+                                                     plotlyOutput("FeatureScatterPlot2")
+                                              ),
+                                              br(),
+                                              br(),
+                                              column(12,
+                                                     column(5,
+                                                            downloadButton('download_FeatureScatterPlot1', 'Download (as png)'),
+                                                     ),
+                                                     column(5,
+                                                            downloadButton('download_FeatureScatterPlot2', 'Download (as png)'),
+                                                     ),
+                                                ),
+                                              ),
+                                     tabPanel("Normalization and Variable Gene Plot",
+                                              
+                                              selectInput("norm1",
+                                                          label = "Normalization method",
+                                                          choices = c("LogNormalize", "SCTransform")
+                                              ),
+                                              
+                                              textOutput("nVarGenes"),
+                                              fluidRow(
+                                                column(3,
+                                                       numericInput("var.genes",
+                                                                    label = "Number of variable genes",
+                                                                    value = 2000,
+                                                                    min = 500,
+                                                                    step = 500)
+                                                ),
+                                                column(3,
+                                                       selectInput("selection.method",
+                                                                   label = "Selection method",
+                                                                   choices = c("vst", "dispersion"))
+                                                ),
+                                                column(4,
+                                                       br(),
+                                                       actionButton("findVarGenes", "Identify highly variable genes", icon = icon("hand-pointer-o")),
+                                                       #actionButton("doSCTransform", "Run SCTransform", icon = icon("hand-pointer-o"))
+                                                       # actionButton("doVarplot", "Plot variable genes", icon = icon("hand-pointer-o"))
+                                                )),
+                                              plotOutput("VarGenes", width = "100%"),
+                                            ),
+                                     tabPanel("PCA",
+                                              tabsetPanel(id="Pca",
+                                                          tabPanel(title="PCA Plot", value="P_panel1",
                                                                    br(),
-                                                                   plotlyOutput("mitoPlot", width = "100%"),
+                                                                   column(3,
+                                                                   selectInput("assays1",
+                                                                               label = "Normalize by:",
+                                                                               choices = c("RNA", "SCT")
+                                                                    ),
+                                                                   ),
                                                                    br(),
-                                                                   plotlyOutput("nCount_RNAPlot", width = "100%")
+                                                                   column(3,
+                                                                          actionButton("doPCA", "Run PCA", icon = icon("hand-pointer-o"))
+                                                                   ),
+                                                                   br(),
+                                                                   br(),
+                                                                   column(6,
+                                                                   plotlyOutput("PCA2DPlot", width = "100%")),
+                                                                   column(12,
+                                                                   column(3,
+                                                                          downloadButton('download_PCA', 'Download PCA Plot (as png)'),
+                                                                   ),
+                                                                   column(3,
+                                                                          downloadButton('download_PCA_embedding', 'Download PCA Embedding (as csv)'),
+                                                                   ),
+                                                                  ),
+                                                          ),
+                                                          tabPanel(title="PC Gene Visualisation", value="P_panel2",
+                                                                   br(),
+                                                                   selectInput("select.pc",
+                                                                               label = "PC to plot",
+                                                                               choices = c(1:50)
+                                                                   ),
+                                                                   fluidRow(
+                                                                     column(4,
+                                                                            plotOutput("vizPlot", width = "100%", height = "600px")
+                                                                     ),
+                                                                     column(8,
+                                                                            plotOutput("PCHeatmap", width = "100%", height = "600px")
+                                                                     ),
+                                                                     column(12,
+                                                                     column(3,
+                                                                            downloadButton('download_vizPlot', 'Download vizPlot (as png)'),
+                                                                     ),
+                                                                     column(3,
+                                                                            downloadButton('download_PCHeatmap', 'Download PCHeatmap (as png)'),
+                                                                     ),
+                                                                    ),
+                                                                   ),
+                                                                   br(),
+                                                                   DT::dataTableOutput("PCtable"),
+                                                                   column(3,
+                                                                          downloadButton('download_PCTable', 'Download top genes (as csv)'),
+                                                                   ),
+                                                          ),
+                                                          
+                                                          tabPanel(title="Elbow", value="P_panel4",
+                                                                   br(),
+                                                                   #actionButton("doElbow", label = "Get Elbow Plot"),
+                                                                   #br(),
+                                                                   br(),
+                                                                   plotOutput("Elbow", width = "100%"),
+                                                                   column(12,
+                                                                          column(3,
+                                                                                 downloadButton('download_Elbow', 'Download ElbowPlot (as png)'),
+                                                                          ),
+                                                                   ),
+                                                                   
+                                                          )
+                                              )),
+                                     
+                                     tabPanel("Clustering",
+                                              fluidRow(
+                                                column(3,
+                                                       numericInput("clus.res",
+                                                                    label = "Resolution used",
+                                                                    value = 0.6,
+                                                                    min = 0.1,
+                                                                    step = 0.1)
+                                                ),
+                                                column(3,
+                                                       selectInput("dim.used",
+                                                                   label = "PC to use",
+                                                                   choices = c(10:50)),
+                                                ),
+                                                column(3,
+                                                       br(),
+                                                       actionButton("findCluster", "Find Clusters", icon = icon("hand-pointer-o")),
+                                                       textOutput("cluster.done"),
+                                                       br()
+                                                )),
+                                              br(),
+                                              plotlyOutput("Cluster2DPlot_1", width = "50%"),
+                                              br(),
+                                              column(12,
+                                                     column(3,
+                                                            downloadButton('download_Cluster', 'Download ClusterPlot (as png)'),
+                                                     ),
+                                                     column(3,
+                                                            downloadButton('download_ClusterTable', 'Download Cluster table (as csv)'),
+                                                     ),
+                                              ),
+                                     ),    
+                                     
+                                     tabPanel("UMAP",
+                                              
+                                              fluidRow(
+                                                column(3,
+                                                       numericInput("dim.used",
+                                                                    label = "Dimensions used",
+                                                                    value = 10)
+                                                ),
+                                                br(),
+                                                column(3,
+                                                       actionButton("doUmap", "Run UMAP", icon = icon("hand-pointer-o")),
+                                                       textOutput("Umap.done"),
+                                                       br()
+                                                )),
+                                              br(),
+                                              plotlyOutput("Umap_2d_plot_1", width = "50%"),
+                                              br(),
+                                              column(12,
+                                                     column(3,
+                                                            downloadButton('download_UMAP', 'Download UMAP Plot (as png)'),
+                                                     ),
+                                                     column(3,
+                                                            downloadButton('download_UMAP_embedding', 'Download UMAP Embeddings (as csv)'),
+                                                     ),
+                                              ),
+                                     ),
+                                        tabPanel("tSNE",
+                                                 
+                                                 fluidRow(
+                                                   column(3,
+                                                          numericInput("dim.used",
+                                                                       label = "Dimensions used",
+                                                                       value = 10)
+                                                   ),
+                                                   column(3,
+                                                          uiOutput("perplex.option")
+                                                   ),
+                                                   column(3,
+                                                          br(),
+                                                          actionButton("doTsne", "Run TSNE", icon = icon("hand-pointer-o")),
+                                                          textOutput("Tsne.done"),
+                                                          br()
+                                                   )),
+                                                 br(),
+                                                 plotlyOutput("Tsne_2d_plot_1", width = "50%"),
+                                                 br(),
+                                                 column(12,
+                                                        column(3,
+                                                               downloadButton('download_Tsne', 'Download tSNE Plot (as png)'),
+                                                        ),
+                                                        column(3,
+                                                               downloadButton('download_Tsne_embedding', 'Download tSNE Embeddings (as csv)'),
+                                                        ),
+                                                 ),
+                                        ),
+                                     
+                                     tabPanel("Cell type identification",
+                                              
+                                              column(3,
+                                                     br(),
+                                                     actionButton("doCELLiD", "Run CELLiD", icon = icon("hand-pointer-o")),
+                                                     textOutput("CELLiD.done"),
+                                                     br()
+                                              ),
+                                              br(),
+                                              br(),
+                                              br(),
+                                              plotlyOutput("Umap_cellid", width = "50%"),
+                                              plotlyOutput("Umap_cellid1", width = "50%"),
+                                              br(),
+                                              column(12,
+                                                     column(4,
+                                                            downloadButton('download_Umap_cellid', 'Download CELLiD predict1 (as png)'),
+                                                     ),
+                                                     column(4,
+                                                            downloadButton('download_Umap_cellid1', 'Download CELLiD predict2 (as png)'),
+                                                     ),
+                                                     column(4,
+                                                            downloadButton('download_cellid_prediction', 'Download CELLiD predictions (in csv)'),
+                                                     ),
+                                              ),
+                                              br(),
+                                              br(),
+                                              br(),
+                                              DT::dataTableOutput("ct.table")
+                                     ),
+                                     
+                                     tabPanel("Cell-cell similarity",
+                                              column(3,
+                                                     br(),
+                                                     actionButton("cell_cell", "Run cell-cell similarity", icon = icon("hand-pointer-o")),
+                                                     textOutput("CELL.done"),
+                                                     br()
+                                              ),
+                                              br(),
+                                              br(),
+                                              br(),
+                                              column(9,
+                                              plotOutput("cell_cell_sim", width = "100%")
+                                              ),
+                                              br(),
+                                              br(),
+                                              br(),
+                                              column(12,
+                                                     column(4,
+                                                            downloadButton('download_cell_cell_sim', 'Download Celltype similarity plot (as png)'),
+                                                     ),
+                                                     column(4,
+                                                            downloadButton('download_cor.table', 'Download Celltype similarity table (in csv)'),
+                                                     ),
+                                              ),
+                                              br(),
+                                              br(),
+                                              br(),
+                                              br(),
+                                              br(),
+                                              DT::dataTableOutput("cor.table")
+                                     ),
+                                     
+                                      tabPanel("DEGs",
+                                               fluidRow(
+                                                 
+                                                 column(3, selectInput("min_pct",
+                                                                       label = "min.pct",
+                                                                       choices = c("0.1", "0.25"))
+                                                 ),
+                                                 
+                                                 column(3, selectInput("logfc",
+                                                                       label = "logfc.threshold",
+                                                                       choices = c("0.1", "0.25"))
+                                                 ),
+                                                 
+                                                 column(3, selectInput("test.use",
+                                                                       label = "Test use",
+                                                                       choices = c("wilcox", "bimod", "roc", "t", "negbinom", "poisson", "LR", "MAST", "DESeq2"))
+                                                 ),
+                                                 br(),
+                                                 column(3,
+                                                        actionButton("doDeg", "Run DEGs", icon = icon("hand-pointer-o"))
+                                                 )),
+                                               br(),
+                                               column(9,
+                                                      DT::dataTableOutput("Deg.table"),
+                                                      br(),
+                                                      plotOutput("Deg3.plot", width = "100%")
+                                               )
+                                               
+                                      ),
+                                     
+                                     tabPanel("Data visualization",
+                                              
+                                              fluidRow(
+                                                column(6,
+                                                       uiOutput("deg.gene.select"),
+                                                       plotlyOutput("Deg.plot", width = "200%"),
+                                                       br(),
+                                                       plotlyOutput("Deg1.plot", width = "200%"),
+                                                       br(),
+                                                       plotOutput("Deg2.plot", width = "200%"),
+                                                ),
+                                              )
+                                     ),
+                                     
+                                     tabPanel("Volcano Plot",
+                                              br(),
+                                              plotOutput("volcano.plot", width = "75%")
+                                              ),
+                                     
+                                     tabPanel("GSEA",
+                                              column(3,
+                                                     br(),
+                                                     actionButton("gsea", "Run gene set enrichment analysis", icon = icon("hand-pointer-o")),
+                                                     textOutput("gsea.done"),
+                                                     br()
+                                              ),
+                                              br(),
+                                              plotOutput("gsea_plot", width = "100%"),
+                                              br(),
+                                              br(),
+                                              br(),
+                                              br(),
+                                              DT::dataTableOutput("gsea.table")
+                                     ),
+                                     
+                                     tabPanel("Cell-cell communication", 
+                                              column(3,
+                                                     br(),
+                                                     actionButton("doCC", "Run analysis", icon = icon("hand-pointer-o")),
+                                                     textOutput("cc.done"),
+                                                     br()
+                                              ),
+                                              column(3, selectInput("method",
+                                                                    label = "Method",
+                                                                    choices = c("cellphonedb"))
+                                              ),
+                                              column(3, selectInput("resource",
+                                                                    label = "Resource",
+                                                                    choices = c("Default", "Consensus", "Baccin2019", "CellCall", "CellChatDB", "Cellinker", "CellPhoneDB", "CellTalkDB", "connectomeDB2020", "EMBRACE", "Guide2Pharma", "HPMR", "ICELLNET", "iTALK", "Kirouac2010", "LRdb", "Ramilowski2015", "OmniPath"))
+                                              ),
+                                              column(3, selectInput("pval",
+                                                                    label = "p-value",
+                                                                    choices = c("0.01", "0.05"))
+                                              ),
+                                              br(),
+                                              column(3,
+                                              uiOutput("CC.gene.select"),
+                                              ),
+                                              column(3,
+                                              uiOutput("CC.gene1.select"),
+                                              ),
+                                              #plotOutput("CC_plot1", width = "100%"),
+                                              br(),
+                                              plotOutput("CC_plot2", width = "100%"),
+                                              br(),
+                                              br(),
+                                              br(),
+                                              plotOutput("CC_plot3", width = "100%"),
+                                              br(),
+                                              br(),
+                                              br(),
+                                              br(),
+                                              DT::dataTableOutput("cc.table")
+                                     
+                                              )
+                                     ),
+                       ),
+               tabPanel("Single cell data integration",
+                        navlistPanel(widths=c(2,10),
+                                     tabPanel("Overview",
+                                              h2(p("Workflow for Data integration module")),
+                                              br(),
+                                              imageOutput("integration_image"),         
+                                     ),
+                                     tabPanel("Upload your data",
+                                              column(9,
+                                                     column(5,
+                                                            #h4('Load Data:'),
+                                                            wellPanel(
+                                                              titlePanel(h4(p("Load your input data"))),
+                                                              br(),
+                                                              selectInput("scInput1",
+                                                                          label = "Select Data Input Type",
+                                                                          choices = c("Raw Counts Matrix", "10X cellranger"),
+                                                                          selected = "Raw Counts Matrix"),
+                                                              conditionalPanel(
+                                                                condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                fileInput("tpmFiles1",
+                                                                          label = "Counts File (Accepted Format: text)",
+                                                                          accept = ".txt", 
+                                                                          multiple = T)),
+                                                              conditionalPanel(
+                                                                condition = "input.scInput1 == '10X cellranger'",
+                                                                fileInput("scH5_1",
+                                                                          label = "Cellranger output (Accepted Format: .h5)",
+                                                                          accept = ".h5",
+                                                                          multiple = T)),
+                                                              conditionalPanel(
+                                                                condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                fileInput("cellAnnoFiles1",
+                                                                          label = "Upload Metadata (Accepted Format: tab delimited text)",
+                                                                          accept = ".txt",
+                                                                          multiple = T)),
+                                                                selectInput("scAnalysis_integ",
+                                                                            label = "Analysis method",
+                                                                            choices = c("Seurat", "Harmony", "scVI", "fastMNN"),
+                                                                            selected = "Seurat"),
+                                                              conditionalPanel(
+                                                                condition = "input.scInput1 == 'Raw Counts Matrix' || input.scInput1 == '10X cellranger'",
+                                                                textInput(inputId = "projName1",
+                                                                          label = "Project Name",
+                                                                          value = "Integration")),
+                                                              
+                                                              fluidRow(
+                                                                
+                                                                actionButton("loadButton1", "Load data", icon = icon("hand-o-right")),
+                                                                actionButton("reset_intg", "Reset", icon = icon("repeat"))
+                                                              ),
+                                                            )),
+                                                     
+                                                     column(3,
+                                                            numericInput(inputId = "min.genes1",
+                                                                         label = "Min. genes",
+                                                                         value = 200,
+                                                                         min = 1)
+                                                     ),
+                                                     column(3,
+                                                            numericInput(inputId = "min.cells1",
+                                                                         label = "Min. cells",
+                                                                         value = 3,
+                                                                         min = 1)
+                                                     ),
+                                                     column(3,
+                                                            actionButton("create_seurat1", "Process", icon = icon("hand-o-right"))
+                                                     ),
+                                                     
+                                                     
+                                              ),
+                                              
+                                              column(12,
+                                                     withSpinner(dataTableOutput('countdataDT1'))
+                                              )),
+                                     
+                                     tabPanel("Quality control",
+                                          tabsetPanel(id="qc_intg",
+                                            tabPanel("Violin Plot",            
+                                              column(3,
+                                                     plotOutput("nFeature_RNAPlot1")
+                                              ),
+                                              column(3,
+                                                     plotOutput("mitoPlot1")
+                                              ),
+                                              column(3,
+                                                     plotOutput("nCount_RNAPlot1")
+                                              )),
+                                            tabPanel("Feature Scatter", 
+                                                     column(5,
+                                                            plotlyOutput("FeatureScatterPlot1a")
+                                                     ),
+                                                     column(5,
+                                                            plotlyOutput("FeatureScatterPlot2a")
+                                                     ),        
+                                            )),
+                                          
+                                          
+                                     ),
+                                     
+                                     tabPanel("Normalization and Variable Gene Plot",
+                                              textOutput("nVarGenes_bef_intg"),
+                                              fluidRow(
+                                                column(3,
+                                                       numericInput("var.genes_bef_intg",
+                                                                    label = "Number of variable genes",
+                                                                    value = 2000,
+                                                                    min = 500,
+                                                                    step = 500)
+                                                ),
+                                                column(3,
+                                                       selectInput("selection.method_bef_intg",
+                                                                   label = "Selection method",
+                                                                   choices = c("vst", "dispersion"))
+                                                ),
+                                                column(4,
+                                                       br(),
+                                                       actionButton("findVarGenes_bef_intg", "Identify highly variable genes", icon = icon("hand-pointer-o")),
+                                                       
+                                                )),
+                                              plotOutput("VarGenes_bef_intg", width = "100%")       
+                                     ),
+                                     
+                                     tabPanel("Before Data Integration",
+                                              
+                                              tabsetPanel(id="bef_data_integration",
+                                                          
+                                                          tabPanel("PCA", 
+                                                                   br(),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'Seurat'",
+                                                                     tabsetPanel(id="Pca_bef_intg_seurat",
+                                                                                 tabPanel(title="PCA Plot",
+                                                                                          br(),
+                                                                                          fluidRow(
+                                                                                            column(3,
+                                                                                                   actionButton("runPCA_bef_intg_seurat", "Run PCA", icon = icon("hand-pointer-o"))
+                                                                                            ),
+                                                                                          ),
+                                                                                          conditionalPanel(
+                                                                                            condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                                            plotlyOutput("PCAplot_bef_seurat_tpm1", width = "100%"),
+                                                                                            plotlyOutput("PCAplot_bef_seurat_tpm2", width = "100%"),
+                                                                                            plotlyOutput("PCAplot_bef_seurat_tpm3", width = "100%")),
+                                                                                          br(),
+                                                                                          conditionalPanel(
+                                                                                            condition = "input.scInput1 == '10X cellranger'",
+                                                                                            plotlyOutput("PCAplot_bef_seurat_h5_1", width = "100%"),
+                                                                                            plotlyOutput("PCAplot_bef_seurat_h5_2", width = "100%")),
+                                                                                 ),
+                                                                                 tabPanel(title="PC Gene Visualisation",
+                                                                                          br(),
+                                                                                          selectInput("select.pc_bef_intg_seurat",
+                                                                                                      label = "PC to plot",
+                                                                                                      choices = c(1:20)
+                                                                                          ),
+                                                                                          fluidRow(
+                                                                                            column(4,
+                                                                                                   plotOutput("vizPlot_bef_intg_seurat", width = "100%", height = "600px")
+                                                                                            ),
+                                                                                            column(8,
+                                                                                                   plotOutput("PCHeatmap_bef_intg_seurat", width = "100%", height = "600px")
+                                                                                            )
+                                                                                          ),
+                                                                                          DT::dataTableOutput("PCtable_bef_intg_seurat")
+                                                                                 ),
+                                                                                 
+                                                                                 tabPanel(title="Elbow", 
+                                                                                          br(),
+                                                                                          #actionButton("doElbow", label = "Get Elbow Plot"),
+                                                                                          #br(),
+                                                                                          br(),
+                                                                                          plotOutput("Elbow_bef_intg_seurat", width = "100%")
+                                                                                          
+                                                                                 ))),
+                                                                   
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'Harmony'",
+                                                                     tabsetPanel(id="Pca_bef_intg_harmony",
+                                                                                 tabPanel(title="PCA Plot",
+                                                                                          br(),
+                                                                                          fluidRow(
+                                                                                            column(3,
+                                                                                                   actionButton("runPCA_bef_intg_harmony", "Run PCA", icon = icon("hand-pointer-o"))
+                                                                                            ),
+                                                                                          ),
+                                                                                          conditionalPanel(
+                                                                                            condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                                            plotlyOutput("PCAplot_bef_harmony_tpm1", width = "100%"),
+                                                                                            plotlyOutput("PCAplot_bef_harmony_tpm2", width = "100%"),
+                                                                                            plotlyOutput("PCAplot_bef_harmony_tpm3", width = "100%")),
+                                                                                          br(),
+                                                                                          conditionalPanel(
+                                                                                            condition = "input.scInput1 == '10X cellranger'",
+                                                                                            plotlyOutput("PCAplot_bef_harmony_h5_1", width = "100%"),
+                                                                                            plotlyOutput("PCAplot_bef_harmony_h5_2", width = "100%")),
+                                                                                 ),
+                                                                                 tabPanel(title="PC Gene Visualisation",
+                                                                                          br(),
+                                                                                          selectInput("select.pc_bef_intg_harmony",
+                                                                                                      label = "PC to plot",
+                                                                                                      choices = c(1:20)
+                                                                                          ),
+                                                                                          fluidRow(
+                                                                                            column(4,
+                                                                                                   plotOutput("vizPlot_bef_intg_harmony", width = "100%", height = "600px")
+                                                                                            ),
+                                                                                            column(8,
+                                                                                                   plotOutput("PCHeatmap_bef_intg_harmony", width = "100%", height = "600px")
+                                                                                            )
+                                                                                          ),
+                                                                                          DT::dataTableOutput("PCtable_bef_intg_harmony")
+                                                                                 ),
+                                                                                 
+                                                                                 tabPanel(title="Elbow", 
+                                                                                          br(),
+                                                                                          br(),
+                                                                                          plotOutput("Elbow_bef_intg_harmony", width = "100%")
+                                                                                 ))),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'BEER'",
+                                                                     tabsetPanel(id="Pca_bef_intg_beer",
+                                                                                 tabPanel(title="PCA Plot",
+                                                                                          br(),
+                                                                                          fluidRow(
+                                                                                            column(3,
+                                                                                                   actionButton("runPCA_bef_intg_beer", "Run PCA", icon = icon("hand-pointer-o"))
+                                                                                            ),
+                                                                                          ),
+                                                                                          conditionalPanel(
+                                                                                            condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                                            plotlyOutput("PCAplot_bef_beer_tpm1", width = "100%"),
+                                                                                            plotlyOutput("PCAplot_bef_beer_tpm2", width = "100%"),
+                                                                                            plotlyOutput("PCAplot_bef_beer_tpm3", width = "100%")),
+                                                                                          br(),
+                                                                                          conditionalPanel(
+                                                                                            condition = "input.scInput1 == '10X cellranger'",
+                                                                                            plotlyOutput("PCAplot_bef_beer_h5_1", width = "100%"),
+                                                                                            plotlyOutput("PCAplot_bef_beer_h5_2", width = "100%")),
+                                                                                 ),
+                                                                                 tabPanel(title="PC Gene Visualisation",
+                                                                                          br(),
+                                                                                          selectInput("select.pc_bef_intg_beer",
+                                                                                                      label = "PC to plot",
+                                                                                                      choices = c(1:20)
+                                                                                          ),
+                                                                                          fluidRow(
+                                                                                            column(4,
+                                                                                                   plotOutput("vizPlot_bef_intg_beer", width = "100%", height = "600px")
+                                                                                            ),
+                                                                                            column(8,
+                                                                                                   plotOutput("PCHeatmap_bef_intg_beer", width = "100%", height = "600px")
+                                                                                            )
+                                                                                          ),
+                                                                                          DT::dataTableOutput("PCtable_bef_intg_beer")
+                                                                                 ),
+                                                                                 
+                                                                                 tabPanel(title="Elbow", 
+                                                                                          br(),
+                                                                                          #actionButton("doElbow", label = "Get Elbow Plot"),
+                                                                                          #br(),
+                                                                                          br(),
+                                                                                          plotOutput("Elbow_bef_intg_beer", width = "100%")
+                                                                                          
+                                                                                 ))),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'scVI'",
+                                                                     tabsetPanel(id="Pca_bef_intg_scvi",
+                                                                                 tabPanel(title="PCA Plot",
+                                                                                          br(),
+                                                                                          fluidRow(
+                                                                                            column(3,
+                                                                                                   actionButton("runPCA_bef_intg_scvi", "Run PCA", icon = icon("hand-pointer-o"))
+                                                                                            ),
+                                                                                          ),
+                                                                                          conditionalPanel(
+                                                                                            condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                                            plotlyOutput("PCAplot_bef_scvi_tpm1", width = "100%"),
+                                                                                            plotlyOutput("PCAplot_bef_scvi_tpm2", width = "100%"),
+                                                                                            plotlyOutput("PCAplot_bef_scvi_tpm3", width = "100%")),
+                                                                                          br(),
+                                                                                          conditionalPanel(
+                                                                                            condition = "input.scInput1 == '10X cellranger'",
+                                                                                            plotlyOutput("PCAplot_bef_scvi_h5_1", width = "100%"),
+                                                                                            plotlyOutput("PCAplot_bef_scvi_h5_2", width = "100%")),
+                                                                                 ),
+                                                                                 tabPanel(title="PC Gene Visualisation",
+                                                                                          br(),
+                                                                                          selectInput("select.pc_bef_intg_scvi",
+                                                                                                      label = "PC to plot",
+                                                                                                      choices = c(1:20)
+                                                                                          ),
+                                                                                          fluidRow(
+                                                                                            column(4,
+                                                                                                   plotOutput("vizPlot_bef_intg_scvi", width = "100%", height = "600px")
+                                                                                            ),
+                                                                                            column(8,
+                                                                                                   plotOutput("PCHeatmap_bef_intg_scvi", width = "100%", height = "600px")
+                                                                                            )
+                                                                                          ),
+                                                                                          DT::dataTableOutput("PCtable_bef_intg_scvi")
+                                                                                 ),
+                                                                                 
+                                                                                 tabPanel(title="Elbow", 
+                                                                                          br(),
+                                                                                          br(),
+                                                                                          plotOutput("Elbow_bef_intg_scvi", width = "100%")
+                                                                                 ))),
+                                                                      conditionalPanel(
+                                                                            condition = "input.scAnalysis_integ == 'fastMNN'",
+                                                                            tabsetPanel(id="Pca_bef_intg_fastmnn",
+                                                                                 tabPanel(title="PCA Plot",
+                                                                                          br(),
+                                                                                          fluidRow(
+                                                                                            column(3,
+                                                                                                   actionButton("runPCA_bef_intg_fastmnn", "Run PCA", icon = icon("hand-pointer-o"))
+                                                                                            ),
+                                                                                          ),
+                                                                                          conditionalPanel(
+                                                                                            condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                                            plotlyOutput("PCAplot_bef_fastmnn_tpm1", width = "100%"),
+                                                                                            plotlyOutput("PCAplot_bef_fastmnn_tpm2", width = "100%"),
+                                                                                            plotlyOutput("PCAplot_bef_fastmnn_tpm3", width = "100%")),
+                                                                                          br(),
+                                                                                          conditionalPanel(
+                                                                                            condition = "input.scInput1 == '10X cellranger'",
+                                                                                            plotlyOutput("PCAplot_bef_fastmnn_h5_1", width = "100%"),
+                                                                                            plotlyOutput("PCAplot_bef_fastmnn_h5_2", width = "100%")),
+                                                                                 ),
+                                                                                 tabPanel(title="PC Gene Visualisation",
+                                                                                          br(),
+                                                                                          selectInput("select.pc_bef_intg_fastmnn",
+                                                                                                      label = "PC to plot",
+                                                                                                      choices = c(1:20)
+                                                                                          ),
+                                                                                          fluidRow(
+                                                                                            column(4,
+                                                                                                   plotOutput("vizPlot_bef_intg_fastmnn", width = "100%", height = "600px")
+                                                                                            ),
+                                                                                            column(8,
+                                                                                                   plotOutput("PCHeatmap_bef_intg_fastmnn", width = "100%", height = "600px")
+                                                                                            )
+                                                                                          ),
+                                                                                          DT::dataTableOutput("PCtable_bef_intg_fastmnn")
+                                                                                 ),
+                                                                                 
+                                                                                 tabPanel(title="Elbow", 
+                                                                                          br(),
+                                                                                          br(),
+                                                                                          plotOutput("Elbow_bef_intg_fastmnn", width = "100%")
+                                                                                 )))),
+                                                          
+                                                          tabPanel("Clustering",
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'Seurat'",
+                                                                     br(),
+                                                                     fluidRow(
+                                                                       column(3,
+                                                                              numericInput("clus.res_bef_intg_seurat",
+                                                                                           label = "Resolution used",
+                                                                                           value = 0.6,
+                                                                                           min = 0.1,
+                                                                                           step = 0.1)
+                                                                       ),
+                                                                       column(3,
+                                                                              selectInput("dim.used_bef_intg_seurat",
+                                                                                          label = "PC to use",
+                                                                                          choices = c(10:50)),
+                                                                       ),
+                                                                       column(3,
+                                                                              br(),
+                                                                              actionButton("findCluster_bef_intg_seurat", "Find Clusters", icon = icon("hand-pointer-o")),
+                                                                              #textOutput("cluster1.done"),
+                                                                       )),
+                                                                     br(),
+                                                                     plotlyOutput("Cluster2DPlot_bef_intg_seurat", width = "100%")
+                                                                     
+                                                                   ),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'Harmony'",
+                                                                     br(),
+                                                                     fluidRow(
+                                                                       column(3,
+                                                                              numericInput("clus.res_bef_intg_harmony",
+                                                                                           label = "Resolution used",
+                                                                                           value = 0.6,
+                                                                                           min = 0.1,
+                                                                                           step = 0.1)
+                                                                       ),
+                                                                       column(3,
+                                                                              selectInput("dim.used_bef_intg_harmony",
+                                                                                          label = "PC to use",
+                                                                                          choices = c(10:50)),
+                                                                       ),
+                                                                       column(3,
+                                                                              br(),
+                                                                              actionButton("findCluster_bef_intg_harmony", "Find Clusters", icon = icon("hand-pointer-o")),
+                                                                              #textOutput("cluster2.done"),
+                                                                       )),
+                                                                     br(),
+                                                                     plotlyOutput("Cluster2DPlot_bef_intg_harmony", width = "100%")
+                                                                   ),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'BEER'",
+                                                                     br(),
+                                                                     fluidRow(
+                                                                       column(3,
+                                                                              numericInput("clus.res_bef_intg_beer",
+                                                                                           label = "Resolution used",
+                                                                                           value = 0.6,
+                                                                                           min = 0.1,
+                                                                                           step = 0.1)
+                                                                       ),
+                                                                       column(3,
+                                                                              selectInput("dim.used_bef_intg_beer",
+                                                                                          label = "PC to use",
+                                                                                          choices = c(10:50)),
+                                                                       ),
+                                                                       column(3,
+                                                                              br(),
+                                                                              actionButton("findCluster_bef_intg_beer", "Find Clusters", icon = icon("hand-pointer-o")),
+                                                                              #textOutput("cluster1.done"),
+                                                                       )),
+                                                                     br(),
+                                                                     plotlyOutput("Cluster2DPlot_bef_intg_beer", width = "100%")
+                                                                    ),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'scVI'",
+                                                                     br(),
+                                                                     fluidRow(
+                                                                       column(3,
+                                                                              numericInput("clus.res_bef_intg_scvi",
+                                                                                           label = "Resolution used",
+                                                                                           value = 0.6,
+                                                                                           min = 0.1,
+                                                                                           step = 0.1)
+                                                                       ),
+                                                                       column(3,
+                                                                              selectInput("dim.used_bef_intg_scvi",
+                                                                                          label = "PC to use",
+                                                                                          choices = c(10:50)),
+                                                                       ),
+                                                                       column(3,
+                                                                              br(),
+                                                                              actionButton("findCluster_bef_intg_scvi", "Find Clusters", icon = icon("hand-pointer-o")),
+                                                                              #textOutput("cluster1.done"),
+                                                                       )),
+                                                                     br(),
+                                                                     plotlyOutput("Cluster2DPlot_bef_intg_scvi", width = "100%")
+                                                                     
+                                                                   ),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'fastMNN'",
+                                                                     br(),
+                                                                     fluidRow(
+                                                                       column(3,
+                                                                              numericInput("clus.res_bef_intg_fastmnn",
+                                                                                           label = "Resolution used",
+                                                                                           value = 0.6,
+                                                                                           min = 0.1,
+                                                                                           step = 0.1)
+                                                                       ),
+                                                                       column(3,
+                                                                              selectInput("dim.used_bef_intg_fastmnn",
+                                                                                          label = "PC to use",
+                                                                                          choices = c(10:50)),
+                                                                       ),
+                                                                       column(3,
+                                                                              br(),
+                                                                              actionButton("findCluster_bef_intg_fastmnn", "Find Clusters", icon = icon("hand-pointer-o")),
+                                                                              #textOutput("cluster1.done"),
+                                                                       )),
+                                                                     br(),
+                                                                     plotlyOutput("Cluster2DPlot_bef_intg_fastmnn", width = "100%")
+                                                                     
+                                                                   )
+                                                          ),
+                                                          
+                                                          tabPanel("UMAP",
+                                                                   
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'Seurat'",
+                                                                     br(),
+                                                                     column(3,
+                                                                            numericInput("dim.used_bef_intg_seurat",
+                                                                                         label = "Dimensions used",
+                                                                                         value = 10)
+                                                                     ),
+                                                                     column(9,
+                                                                            br(),
+                                                                            actionButton("runUMAP_bef_intg_seurat", "Run UMAP", icon = icon("hand-pointer-o")),
+                                                                            br(),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                              plotlyOutput("UMAPplot_bef_seurat_tpm1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("UMAPplot_bef_seurat_tpm2", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("UMAPplot_bef_seurat_tpm3", width = "100%")),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == '10X cellranger'",
+                                                                              plotlyOutput("UMAPplot_bef_seurat_h5_1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("UMAPplot_bef_seurat_h5_2", width = "100%")),
+                                                                            
+                                                                     )),
+                                                                   
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'Harmony'",
+                                                                     br(),
+                                                                     column(3,
+                                                                            numericInput("dim.used_bef_intg_harmony",
+                                                                                         label = "Dimensions used",
+                                                                                         value = 10)
+                                                                     ),
+                                                                     column(9,
+                                                                            br(),
+                                                                            actionButton("runUMAP_bef_intg_harmony", "Run UMAP", icon = icon("hand-pointer-o")),
+                                                                            
+                                                                            br(),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                              plotlyOutput("UMAPplot_bef_harmony_tpm1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("UMAPplot_bef_harmony_tpm2", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("UMAPplot_bef_harmony_tpm3", width = "100%")),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == '10X cellranger'",
+                                                                              plotlyOutput("UMAPplot_bef_harmony_h5_1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("UMAPplot_bef_harmony_h5_2", width = "100%")),
+                                                                     )),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'BEER'",
+                                                                     br(),
+                                                                     column(3,
+                                                                            numericInput("dim.used_bef_intg_beer",
+                                                                                         label = "Dimensions used",
+                                                                                         value = 10)
+                                                                     ),
+                                                                     column(9,
+                                                                            br(),
+                                                                            actionButton("runUMAP_bef_intg_beer", "Run UMAP", icon = icon("hand-pointer-o")),
+                                                                            br(),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                              plotlyOutput("UMAPplot_bef_beer_tpm1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("UMAPplot_bef_beer_tpm2", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("UMAPplot_bef_beer_tpm3", width = "100%")),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == '10X cellranger'",
+                                                                              plotlyOutput("UMAPplot_bef_beer_h5_1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("UMAPplot_bef_beer_h5_2", width = "100%")),
+                                                                     )),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'scVI'",
+                                                                     br(),
+                                                                     column(3,
+                                                                            numericInput("dim.used_bef_intg_scvi",
+                                                                                         label = "Dimensions used",
+                                                                                         value = 10)
+                                                                     ),
+                                                                     column(9,
+                                                                            br(),
+                                                                            actionButton("runUMAP_bef_intg_scvi", "Run UMAP", icon = icon("hand-pointer-o")),
+                                                                            br(),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                              plotlyOutput("UMAPplot_bef_scvi_tpm1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("UMAPplot_bef_scvi_tpm2", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("UMAPplot_bef_scvi_tpm3", width = "100%")),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == '10X cellranger'",
+                                                                              plotlyOutput("UMAPplot_bef_scvi_h5_1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("UMAPplot_bef_scvi_h5_2", width = "100%")),
+                                                                          )),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'fastMNN'",
+                                                                     br(),
+                                                                     column(3,
+                                                                            numericInput("dim.used_bef_intg_fastmnn",
+                                                                                         label = "Dimensions used",
+                                                                                         value = 10)
+                                                                     ),
+                                                                     column(9,
+                                                                            br(),
+                                                                            actionButton("runUMAP_bef_intg_fastmnn", "Run UMAP", icon = icon("hand-pointer-o")),
+                                                                            br(),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                              plotlyOutput("UMAPplot_bef_fastmnn_tpm1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("UMAPplot_bef_fastmnn_tpm2", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("UMAPplot_bef_fastmnn_tpm3", width = "100%")),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == '10X cellranger'",
+                                                                              plotlyOutput("UMAPplot_bef_fastmnn_h5_1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("UMAPplot_bef_fastmnn_h5_2", width = "100%")),
+                                                                            
+                                                                     ))
+                                                                   
+                                                          ),
+                                                          
+                                                          tabPanel("tSNE",
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'Seurat'",
+                                                                     br(),
+                                                                     column(3,
+                                                                            numericInput("dim.used_bef_intg_seurat",
+                                                                                         label = "Dimensions used",
+                                                                                         value = 10)
+                                                                     ),
+                                                                     column(9,
+                                                                            br(),
+                                                                            actionButton("runTSNE_bef_intg_seurat", "Run TSNE", icon = icon("hand-pointer-o")),
+                                                                            #textOutput("Intg.done"),
+                                                                            br(),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                              plotlyOutput("TSNEplot_bef_seurat_tpm1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("TSNEplot_bef_seurat_tpm2", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("TSNEplot_bef_seurat_tpm3", width = "100%")),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == '10X cellranger'",
+                                                                              plotlyOutput("TSNEplot_bef_seurat_h5_1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("TSNEplot_bef_seurat_h5_2", width = "100%")),
+                                                                     )),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'Harmony'",
+                                                                     br(),
+                                                                     column(3,
+                                                                            numericInput("dim.used_bef_intg_harmony",
+                                                                                         label = "Dimensions used",
+                                                                                         value = 10)
+                                                                     ),
+                                                                     column(9,
+                                                                            br(),
+                                                                            actionButton("runTSNE_bef_intg_harmony", "Run TSNE", icon = icon("hand-pointer-o")),
+                                                                            #textOutput("Intg.done"),
+                                                                            br(),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                              plotlyOutput("TSNEplot_bef_harmony_tpm1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("TSNEplot_bef_harmony_tpm2", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("TSNEplot_bef_harmony_tpm3", width = "100%")),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == '10X cellranger'",
+                                                                              plotlyOutput("TSNEplot_bef_harmony_h5_1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("TSNEplot_bef_harmony_h5_2", width = "100%")),
+                                                                     )),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'BEER'",
+                                                                     br(),
+                                                                     column(3,
+                                                                            numericInput("dim.used_bef_intg_beer",
+                                                                                         label = "Dimensions used",
+                                                                                         value = 10)
+                                                                     ),
+                                                                     column(9,
+                                                                            br(),
+                                                                            actionButton("runTSNE_bef_intg_beer", "Run TSNE", icon = icon("hand-pointer-o")),
+                                                                            #textOutput("Intg.done"),
+                                                                            br(),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                              plotlyOutput("TSNEplot_bef_beer_tpm1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("TSNEplot_bef_beer_tpm2", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("TSNEplot_bef_beer_tpm3", width = "100%")),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == '10X cellranger'",
+                                                                              plotlyOutput("TSNEplot_bef_beer_h5_1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("TSNEplot_bef_beer_h5_2", width = "100%")),
+                                                                     )),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'scVI'",
+                                                                     br(),
+                                                                     column(3,
+                                                                            numericInput("dim.used_bef_intg_scvi",
+                                                                                         label = "Dimensions used",
+                                                                                         value = 10)
+                                                                     ),
+                                                                     column(9,
+                                                                            br(),
+                                                                            actionButton("runTSNE_bef_intg_scvi", "Run TSNE", icon = icon("hand-pointer-o")),
+                                                                            #textOutput("Intg.done"),
+                                                                            br(),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                              plotlyOutput("TSNEplot_bef_scvi_tpm1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("TSNEplot_bef_scvi_tpm2", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("TSNEplot_bef_scvi_tpm3", width = "100%")),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == '10X cellranger'",
+                                                                              plotlyOutput("TSNEplot_bef_scvi_h5_1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("TSNEplot_bef_scvi_h5_2", width = "100%")),
+                                                                     )),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'fastMNN'",
+                                                                     br(),
+                                                                     column(3,
+                                                                            numericInput("dim.used_bef_intg_fastmnn",
+                                                                                         label = "Dimensions used",
+                                                                                         value = 10)
+                                                                     ),
+                                                                     column(9,
+                                                                            br(),
+                                                                            actionButton("runTSNE_bef_intg_fastmnn", "Run TSNE", icon = icon("hand-pointer-o")),
+                                                                            #textOutput("Intg.done"),
+                                                                            br(),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                              plotlyOutput("TSNEplot_bef_fastmnn_tpm1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("TSNEplot_bef_fastmnn_tpm2", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("TSNEplot_bef_fastmnn_tpm3", width = "100%")),
+                                                                            br(),
+                                                                            conditionalPanel(
+                                                                              condition = "input.scInput1 == '10X cellranger'",
+                                                                              plotlyOutput("TSNEplot_bef_fastmnn_h5_1", width = "100%"),
+                                                                              br(),
+                                                                              plotlyOutput("TSNEplot_bef_fastmnn_h5_2", width = "100%")),
+                                                                     ))
+                                                                  ),
+                                                          
+                                                          tabPanel("Cell type identification",
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'Seurat'",
+                                                                     column(3,
+                                                                            br(),
+                                                                            actionButton("doCELLiD_bef_intg_seurat", "Run CELLiD", icon = icon("hand-pointer-o")),
+                                                                            #textOutput("CELLiD.done"),
+                                                                            br()
+                                                                     ),
+                                                                     br(),
+                                                                     br(),
+                                                                     br(),
+                                                                     plotlyOutput("Umap_cellid_bef_intg_seurat", width = "100%"),
+                                                                     plotlyOutput("Umap_cellid_bef_intg_seurat1", width = "100%"),
+                                                                     br(),
+                                                                     br(),
+                                                                     DT::dataTableOutput("ct_bef_intg_seurat.table")
+                                                                     ),
+                                                                   
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'Harmony'",
+                                                                     column(3,
+                                                                            br(),
+                                                                            actionButton("doCELLiD_bef_intg_harmony", "Run CELLiD", icon = icon("hand-pointer-o")),
+                                                                            #textOutput("CELLiD.done"),
+                                                                            br()
+                                                                     ),
+                                                                     br(),
+                                                                     br(),
+                                                                     br(),
+                                                                     plotlyOutput("Umap_cellid_bef_intg_harmony", width = "100%"),
+                                                                     plotlyOutput("Umap_cellid_bef_intg_harmony1", width = "100%"),
+                                                                     br(),
+                                                                     br(),
+                                                                     DT::dataTableOutput("ct_bef_intg_harmony.table")
+                                                                     ),
+                                                                   
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'BEER'",
+                                                                     column(3,
+                                                                            br(),
+                                                                            actionButton("doCELLiD_bef_intg_beer", "Run CELLiD", icon = icon("hand-pointer-o")),
+                                                                            #textOutput("CELLiD.done"),
+                                                                            br()
+                                                                     ),
+                                                                     br(),
+                                                                     br(),
+                                                                     br(),
+                                                                     plotlyOutput("Umap_cellid_bef_intg_beer", width = "100%"),
+                                                                     plotlyOutput("Umap_cellid_bef_intg_beer1", width = "100%"),
+                                                                     br(),
+                                                                     br(),
+                                                                     DT::dataTableOutput("ct_bef_intg_beer.table")
+                                                                     ),
+                                                                   
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'scVI'",
+                                                                     column(3,
+                                                                            br(),
+                                                                            actionButton("doCELLiD_bef_intg_scvi", "Run CELLiD", icon = icon("hand-pointer-o")),
+                                                                            #textOutput("CELLiD.done"),
+                                                                            br()
+                                                                     ),
+                                                                     br(),
+                                                                     br(),
+                                                                     br(),
+                                                                     plotlyOutput("Umap_cellid_bef_intg_scvi", width = "100%"),
+                                                                     plotlyOutput("Umap_cellid_bef_intg_scvi1", width = "100%"),
+                                                                     br(),
+                                                                     br(),
+                                                                     DT::dataTableOutput("ct_bef_intg_scvi.table")
+                                                                     ),
+                                                                   
+                                                                   conditionalPanel(
+                                                                     condition = "input.scAnalysis_integ == 'fastMNN'",
+                                                                     column(3,
+                                                                            br(),
+                                                                            actionButton("doCELLiD_bef_intg_fastmnn", "Run CELLiD", icon = icon("hand-pointer-o")),
+                                                                            #textOutput("CELLiD.done"),
+                                                                            br()
+                                                                     ),
+                                                                     br(),
+                                                                     br(),
+                                                                     br(),
+                                                                     plotlyOutput("Umap_cellid_bef_intg_fastmnn", width = "100%"),
+                                                                     plotlyOutput("Umap_cellid_bef_intg_fastmnn1", width = "100%"),
+                                                                     br(),
+                                                                     br(),
+                                                                     DT::dataTableOutput("ct_bef_intg_fastmnn.table")
+                                                                     )
                                                             ),
-                                                            #column(6,
-                                                            #       verbatimTextOutput("name")
-                                                            #)
-                                                        )
-
-                                               ),
-                                               tabPanel(title="Feature Scatter Plots", value="QC_panel2",
-                                                        br(),
-                                                        fluidRow(
-                                                            column(6,
-                                                                   plotlyOutput("FeatureScatterPlot1", width = "100%"),
+                                                          )
+                                     ),
+                                              
+                                     tabPanel("Data Integration", 
+                                       fluidRow(
+                                         column(3,
+                                                br(),
+                                                conditionalPanel(
+                                                  condition = "input.scAnalysis_integ == 'Seurat'",
+                                                  numericInput("nfeatures_intg_seurat",
+                                                               label = "Integration features",
+                                                               value = 2000,
+                                                               min = 500,
+                                                               step = 1),
+                                                actionButton("doIntg_seurat", "Running Data Integration", icon = icon("hand-pointer-o")),
+                                                br(),
+                                         ),
+                                         conditionalPanel(
+                                           condition = "input.scAnalysis_integ == 'Harmony'",
+                                           numericInput("nfeatures_intg_harmony",
+                                                        label = "Integration features",
+                                                        value = 2000,
+                                                        min = 500,
+                                                        step = 1),
+                                           
+                                           actionButton("doIntg_harmony", "Running Data Integration", icon = icon("hand-pointer-o")),
+                                           br(),
+                                         ),
+                                         conditionalPanel(
+                                           condition = "input.scAnalysis_integ == 'BEER'",
+                                           numericInput("nfeatures_intg_beer",
+                                                        label = "Integration features",
+                                                        value = 2000,
+                                                        min = 500,
+                                                        step = 1),
+                                           actionButton("doIntg_beer", "Running Data Integration", icon = icon("hand-pointer-o")),
+                                           br(),
+                                         ),
+                                         conditionalPanel(
+                                           condition = "input.scAnalysis_integ == 'scVI'",
+                                           numericInput("nfeatures_intg_scvi",
+                                                        label = "Integration features",
+                                                        value = 2000,
+                                                        min = 500,
+                                                        step = 1),
+                                           actionButton("doIntg_scvi", "Running Data Integration", icon = icon("hand-pointer-o")),
+                                           br(),
+                                         ),
+                                         conditionalPanel(
+                                           condition = "input.scAnalysis_integ == 'fastMNN'",
+                                           numericInput("nfeatures_intg_fastmnn",
+                                                        label = "Integration features",
+                                                        value = 2000,
+                                                        min = 500,
+                                                        step = 1),
+                                           actionButton("doIntg_fastmnn", "Running Data Integration", icon = icon("hand-pointer-o")),
+                                           br(),
+                                         )
+                                         
+                                         ))),
+                                     tabPanel("PCA (After Data Integration)", 
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_integ == 'Seurat'",
+                                              tabsetPanel(id="Pca1",
+                                                          tabPanel(title="PCA Plot",
                                                                    br(),
-                                                                   plotlyOutput("FeatureScatterPlot2", width = "100%")
+                                                                   fluidRow(
+                                                                     column(3,
+                                                                            actionButton("runPCA_intg_seurat", "Run PCA", icon = icon("hand-pointer-o"))
+                                                                     ),
+                                                                   ),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                   plotlyOutput("PCAplot_seurat_tpm1", width = "100%"),
+                                                                   plotlyOutput("PCAplot_seurat_tpm2", width = "100%"),
+                                                                   plotlyOutput("PCAplot_seurat_tpm3", width = "100%")),
+                                                                   br(),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scInput1 == '10X cellranger'",
+                                                                     plotlyOutput("PCAplot_seurat_h5_1", width = "100%"),
+                                                                     plotlyOutput("PCAplot_seurat_h5_2", width = "100%")),
+                                                          ),
+                                                          tabPanel(title="PC Gene Visualisation",
+                                                                   br(),
+                                                                   selectInput("select.pc_intg_seurat",
+                                                                               label = "PC to plot",
+                                                                               choices = c(1:20)
+                                                                   ),
+                                                                   fluidRow(
+                                                                     column(4,
+                                                                            plotOutput("vizPlot_intg_seurat", width = "100%", height = "600px")
+                                                                     ),
+                                                                     column(8,
+                                                                            plotOutput("PCHeatmap_intg_seurat", width = "100%", height = "600px")
+                                                                     )
+                                                                   ),
+                                                                   DT::dataTableOutput("PCtable_intg_seurat")
+                                                          ),
+                                                          
+                                                          tabPanel(title="Elbow", value="P_panel4",
+                                                                   br(),
+                                                                   #actionButton("doElbow", label = "Get Elbow Plot"),
+                                                                   #br(),
+                                                                   br(),
+                                                                   plotOutput("Elbow_intg_seurat", width = "100%")
+                                                          ))),
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_integ == 'Harmony'",
+                                                tabsetPanel(id="Pca2",
+                                                            tabPanel(title="PCA Plot",
+                                                                     br(),
+                                                                     fluidRow(
+                                                                       column(3,
+                                                                              actionButton("runPCA_intg_harmony", "Run PCA", icon = icon("hand-pointer-o"))
+                                                                       ),
+                                                                     ),
+                                                                     conditionalPanel(
+                                                                       condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                     plotlyOutput("PCAplot_harmony_tpm1", width = "100%"),
+                                                                     plotlyOutput("PCAplot_harmony_tpm2", width = "100%"),
+                                                                     plotlyOutput("PCAplot_harmony_tpm3", width = "100%")),
+                                                                     br(),
+                                                                   conditionalPanel(
+                                                                     condition = "input.scInput1 == '10X cellranger'",
+                                                                     plotlyOutput("PCAplot_harmony_h5_1", width = "100%"),
+                                                                     plotlyOutput("PCAplot_harmony_h5_2", width = "100%")),
+                                                            ),
+                                                            tabPanel(title="PC Gene Visualisation",
+                                                                     br(),
+                                                                     selectInput("select.pc_intg_harmony",
+                                                                                 label = "PC to plot",
+                                                                                 choices = c(1:20)
+                                                                     ),
+                                                                     fluidRow(
+                                                                       column(4,
+                                                                              plotOutput("vizPlot_intg_harmony", width = "100%", height = "600px")
+                                                                       ),
+                                                                       column(8,
+                                                                              plotOutput("PCHeatmap_intg_harmony", width = "100%", height = "600px")
+                                                                       )
+                                                                     ),
+                                                                     DT::dataTableOutput("PCtable_intg_harmony")
+                                                            ),
+                                                            
+                                                            tabPanel(title="Elbow", value="P_panel4",
+                                                                     br(),
+                                                                     br(),
+                                                                     plotOutput("Elbow_intg_harmony", width = "100%")
+                                                            ))),
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_integ == 'BEER'",
+                                                tabsetPanel(id="Pca1",
+                                                            tabPanel(title="PCA Plot",
+                                                                     
+                                                                     conditionalPanel(
+                                                                       condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                       plotlyOutput("PCAplot_beer_tpm1", width = "100%"),
+                                                                       plotlyOutput("PCAplot_beer_tpm2", width = "100%")),
+                                                                       
+                                                                     br(),
+                                                                     conditionalPanel(
+                                                                       condition = "input.scInput1 == '10X cellranger'",
+                                                                       plotlyOutput("PCAplot_beer_h5_1", width = "100%"),
+                                                                       plotlyOutput("PCAplot_beer_h5_2", width = "100%")),
+                                                            ),
+                                                            tabPanel(title="PC Gene Visualisation",
+                                                                     br(),
+                                                                     selectInput("select.pc_intg_beer",
+                                                                                 label = "PC to plot",
+                                                                                 choices = c(1:20)
+                                                                     ),
+                                                                     fluidRow(
+                                                                       column(4,
+                                                                              plotOutput("vizPlot_intg_beer", width = "100%", height = "600px")
+                                                                       ),
+                                                                       column(8,
+                                                                              plotOutput("PCHeatmap_intg_beer", width = "100%", height = "600px")
+                                                                       )
+                                                                     ),
+                                                                     DT::dataTableOutput("PCtable_intg_beer")
+                                                            ),
+                                                            
+                                                            tabPanel(title="Elbow", value="P_panel4",
+                                                                     br(),
+                                                                     #actionButton("doElbow", label = "Get Elbow Plot"),
+                                                                     #br(),
+                                                                     br(),
+                                                                     plotOutput("Elbow_intg_beer", width = "100%")
+                                                            ))),
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_integ == 'scVI'",
+                                                h2(p("Please proceed to UMAP")),
+                                                ),
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_integ == 'fastMNN'",
+                                                tabsetPanel(id="Pca2",
+                                                            tabPanel(title="PCA Plot",
+                                                                     br(),
+                                                                     fluidRow(
+                                                                       column(3,
+                                                                              actionButton("runPCA_intg_fastmnn", "Run PCA", icon = icon("hand-pointer-o"))
+                                                                       ),
+                                                                     ),
+                                                                     conditionalPanel(
+                                                                       condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                                       plotlyOutput("PCAplot_fastmnn_tpm1", width = "100%"),
+                                                                       plotlyOutput("PCAplot_fastmnn_tpm2", width = "100%"),
+                                                                       plotlyOutput("PCAplot_fastmnn_tpm3", width = "100%")),
+                                                                     br(),
+                                                                     conditionalPanel(
+                                                                       condition = "input.scInput1 == '10X cellranger'",
+                                                                       plotlyOutput("PCAplot_fastmnn_h5_1", width = "100%"),
+                                                                       plotlyOutput("PCAplot_fastmnn_h5_2", width = "100%")),
+                                                            ),
+                                                            tabPanel(title="PC Gene Visualisation",
+                                                                     br(),
+                                                                     selectInput("select.pc_intg_fastmnn",
+                                                                                 label = "PC to plot",
+                                                                                 choices = c(1:20)
+                                                                     ),
+                                                                     fluidRow(
+                                                                       column(4,
+                                                                              plotOutput("vizPlot_intg_fastmnn", width = "100%", height = "600px")
+                                                                       ),
+                                                                       
+                                                                     ),
+                                                                     DT::dataTableOutput("PCtable_intg_fastmnn")
+                                                            ),
+                                                            
                                                             ))
-                                               )))
-                               ),
-                               #------Normalization and Variable Genes---------
-                               tabPanel("Normalization and Variable Gene Plot", fluidPage(
-                                   hr(),
-
-                                   selectInput("norm1",
-                                               label = "Normalization method",
-                                               choices = c("LogNormalize", "SCTransform")
+                                              ),
+                                     
+                                     tabPanel("Clustering (After Data Integration)",
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_integ == 'Seurat'",
+                                              fluidRow(
+                                                column(3,
+                                                       numericInput("clus.res_intg_seurat",
+                                                                    label = "Resolution used",
+                                                                    value = 0.6,
+                                                                    min = 0.1,
+                                                                    step = 0.1)
+                                                ),
+                                                column(3,
+                                                       selectInput("dim.used_intg_seurat",
+                                                                   label = "PC to use",
+                                                                   choices = c(10:50)),
+                                                ),
+                                                column(3,
+                                                       br(),
+                                                       actionButton("findCluster_intg_seurat", "Find Clusters", icon = icon("hand-pointer-o")),
+                                                       textOutput("cluster1.done"),
+                                                )),
+                                              br(),
+                                              plotlyOutput("Cluster2DPlot_intg_seurat", width = "100%")
+                                              
+                                            ),
+                                            conditionalPanel(
+                                              condition = "input.scAnalysis_integ == 'Harmony'",
+                                              fluidRow(
+                                                column(3,
+                                                       numericInput("clus.res_intg_harmony",
+                                                                    label = "Resolution used",
+                                                                    value = 0.6,
+                                                                    min = 0.1,
+                                                                    step = 0.1)
+                                                ),
+                                                column(3,
+                                                       selectInput("dim.used_intg_harmony",
+                                                                   label = "PC to use",
+                                                                   choices = c(10:50)),
+                                                ),
+                                                column(3,
+                                                       br(),
+                                                       actionButton("findCluster_intg_harmony", "Find Clusters", icon = icon("hand-pointer-o")),
+                                                       textOutput("cluster2.done"),
+                                                )),
+                                              br(),
+                                              plotlyOutput("Cluster2DPlot_intg_harmony", width = "100%")
+                                              ),
+                                            conditionalPanel(
+                                              condition = "input.scAnalysis_integ == 'BEER'",
+                                              fluidRow(
+                                                column(3,
+                                                       numericInput("clus.res_intg_beer",
+                                                                    label = "Resolution used",
+                                                                    value = 0.6,
+                                                                    min = 0.1,
+                                                                    step = 0.1)
+                                                ),
+                                                column(3,
+                                                       selectInput("dim.used_intg_beer",
+                                                                   label = "PC to use",
+                                                                   choices = c(10:50)),
+                                                ),
+                                                column(3,
+                                                       br(),
+                                                       actionButton("findCluster_intg_beer", "Find Clusters", icon = icon("hand-pointer-o")),
+                                                       #textOutput("cluster2.done"),
+                                                )),
+                                              br(),
+                                              plotlyOutput("Cluster2DPlot_intg_beer", width = "100%")
+                                            ),
+                                            conditionalPanel(
+                                              condition = "input.scAnalysis_integ == 'scVI'",
+                                              h2(p("Please proceed to UMAP")),
+                                            ),
+                                            conditionalPanel(
+                                              condition = "input.scAnalysis_integ == 'fastMNN'",
+                                              fluidRow(
+                                                column(3,
+                                                       numericInput("clus.res_intg_fastmnn",
+                                                                    label = "Resolution used",
+                                                                    value = 0.6,
+                                                                    min = 0.1,
+                                                                    step = 0.1)
+                                                ),
+                                                column(3,
+                                                       selectInput("dim.used_intg_fastmnn",
+                                                                   label = "PC to use",
+                                                                   choices = c(10:50)),
+                                                ),
+                                                column(3,
+                                                       br(),
+                                                       actionButton("findCluster_intg_fastmnn", "Find Clusters", icon = icon("hand-pointer-o")),
+                                                       #textOutput("cluster2.done"),
+                                                )),
+                                              br(),
+                                              plotlyOutput("Cluster2DPlot_intg_fastmnn", width = "100%")
+                                            )
+                                     ),
+                                     
+                                     tabPanel("UMAP (After Data Integration)", 
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_integ == 'Seurat'",
+                                                column(3,
+                                                       numericInput("dim.used_intg_seurat",
+                                                                    label = "Dimensions used",
+                                                                    value = 10)
+                                                ),
+                                       column(9,
+                                              br(),
+                                              actionButton("runUMAP_intg_seurat", "Run UMAP", icon = icon("hand-pointer-o")),
+                                              br(),
+                                              br(),
+                                              conditionalPanel(
+                                                condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                                plotlyOutput("UMAPplot_seurat_tpm1", width = "100%"),
+                                                br(),
+                                                plotlyOutput("UMAPplot_seurat_tpm2", width = "100%"),
+                                                br(),
+                                                plotlyOutput("UMAPplot_seurat_tpm3", width = "100%"),
+                                                br(),
+                                                textOutput("UMAP_lisi_seurat")),
+                                              br(),
+                                              conditionalPanel(
+                                                condition = "input.scInput1 == '10X cellranger'",
+                                                plotlyOutput("UMAPplot_seurat_h5_1", width = "100%"),
+                                                br(),
+                                                plotlyOutput("UMAPplot_seurat_h5_2", width = "100%")),
+                                      )),
+                        
+                        conditionalPanel(
+                          condition = "input.scAnalysis_integ == 'Harmony'",
+                          column(3,
+                                 numericInput("dim.used_intg_harmony",
+                                              label = "Dimensions used",
+                                              value = 10)
+                          ),
+                          column(9,
+                                 br(),
+                                 actionButton("runUMAP_intg_harmony", "Run UMAP", icon = icon("hand-pointer-o")),
+                          
+                                 br(),
+                                 br(),
+                                 conditionalPanel(
+                                   condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                   plotlyOutput("UMAPplot_harmony_tpm1", width = "100%"),
+                                   br(),
+                                   plotlyOutput("UMAPplot_harmony_tpm2", width = "100%"),
+                                   br(),
+                                   plotlyOutput("UMAPplot_harmony_tpm3", width = "100%"),
+                                   br(),
+                                   textOutput("UMAP_lisi_harmony")),
+                                 br(),
+                                 conditionalPanel(
+                                   condition = "input.scInput1 == '10X cellranger'",
+                                   plotlyOutput("UMAPplot_harmony_h5_1", width = "100%"),
+                                   br(),
+                                   plotlyOutput("UMAPplot_harmony_h5_2", width = "100%")),
+                          )),
+                        
+                        conditionalPanel(
+                          condition = "input.scAnalysis_integ == 'BEER'",
+                          
+                          column(9,
+                                 br(),
+                                 #actionButton("runUMAP_intg_beer", "Run UMAP", icon = icon("hand-pointer-o")),
+                                 
+                                 conditionalPanel(
+                                   condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                   plotlyOutput("UMAPplot_beer_tpm1", width = "100%"),
+                                   br(),
+                                   plotlyOutput("UMAPplot_beer_tpm2", width = "100%")),
+                                   
+                                 br(),
+                                 conditionalPanel(
+                                   condition = "input.scInput1 == '10X cellranger'",
+                                   plotlyOutput("UMAPplot_beer_h5_1", width = "100%"),
+                                   br(),
+                                   plotlyOutput("UMAPplot_beer_h5_2", width = "100%")),
+                          )),
+                        
+                        conditionalPanel(
+                          condition = "input.scAnalysis_integ == 'scVI'",
+                          column(3,
+                                 numericInput("dim.used_intg_scvi",
+                                              label = "Dimensions used",
+                                              value = 10)
+                          ),
+                          column(9,
+                                 br(),
+                                 actionButton("runUMAP_intg_scvi", "Run UMAP", icon = icon("hand-pointer-o")),
+                                 br(),
+                                 br(),
+                                 conditionalPanel(
+                                   condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                   plotlyOutput("UMAPplot_scvi_tpm1", width = "100%"),
+                                   br(),
+                                   plotlyOutput("UMAPplot_scvi_tpm2", width = "100%"),
+                                   br(),
+                                   plotlyOutput("UMAPplot_scvi_tpm3", width = "100%")),
+                                 br(),
+                                 conditionalPanel(
+                                   condition = "input.scInput1 == '10X cellranger'",
+                                   plotlyOutput("UMAPplot_scvi_h5_1", width = "100%"),
+                                   br(),
+                                   plotlyOutput("UMAPplot_scvi_h5_2", width = "100%")),
+                                 
+                          )),
+                        
+                        conditionalPanel(
+                          condition = "input.scAnalysis_integ == 'fastMNN'",
+                          column(3,
+                                 numericInput("dim.used_intg_fastmnn",
+                                              label = "Dimensions used",
+                                              value = 10)
+                          ),
+                          column(9,
+                                 br(),
+                                 actionButton("runUMAP_intg_fastmnn", "Run UMAP", icon = icon("hand-pointer-o")),
+                                 
+                                 br(),
+                                 br(),
+                                 conditionalPanel(
+                                   condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                   plotlyOutput("UMAPplot_fastmnn_tpm1", width = "100%"),
+                                   br(),
+                                   plotlyOutput("UMAPplot_fastmnn_tpm2", width = "100%"),
+                                   br(),
+                                   plotlyOutput("UMAPplot_fastmnn_tpm3", width = "100%"),
+                                   br(),
+                                   textOutput("UMAP_lisi_fastmnn")),
+                                 br(),
+                                 conditionalPanel(
+                                   condition = "input.scInput1 == '10X cellranger'",
+                                   plotlyOutput("UMAPplot_fastmnn_h5_1", width = "100%"),
+                                   br(),
+                                   plotlyOutput("UMAPplot_fastmnn_h5_2", width = "100%")),
+                          ))
+                        ),
+                        
+                        tabPanel("tSNE (After Data Integration)", 
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'Seurat'",
+                                   column(3,
+                                          numericInput("dim.used_intg_seurat",
+                                                       label = "Dimensions used",
+                                                       value = 10)
                                    ),
-
-                                   textOutput("nVarGenes"),
+                          column(9,
+                                 br(),
+                                 actionButton("runTSNE_intg_seurat", "Run TSNE", icon = icon("hand-pointer-o")),
+                                 #textOutput("Intg.done"),
+                                 br(),
+                                 br(),
+                                 conditionalPanel(
+                                   condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                   plotlyOutput("TSNEplot_seurat_tpm1", width = "100%"),
+                                   br(),
+                                   plotlyOutput("TSNEplot_seurat_tpm2", width = "100%"),
+                                   br(),
+                                   plotlyOutput("TSNEplot_seurat_tpm3", width = "100%")),
+                                 br(),
+                                 conditionalPanel(
+                                   condition = "input.scInput1 == '10X cellranger'",
+                                   plotlyOutput("TSNEplot_seurat_h5_1", width = "100%"),
+                                   br(),
+                                   plotlyOutput("TSNEplot_seurat_h5_2", width = "100%")),
+                          )),
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'Harmony'",
+                                   column(3,
+                                          numericInput("dim.used_intg_harmony",
+                                                       label = "Dimensions used",
+                                                       value = 10)
+                                   ),
+                          column(9,
+                                 br(),
+                                 actionButton("runTSNE_intg_harmony", "Run TSNE", icon = icon("hand-pointer-o")),
+                                 #textOutput("Intg.done"),
+                                 br(),
+                                 br(),
+                                 conditionalPanel(
+                                   condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                   plotlyOutput("TSNEplot_harmony_tpm1", width = "100%"),
+                                   br(),
+                                   plotlyOutput("TSNEplot_harmony_tpm2", width = "100%"),
+                                   br(),
+                                   plotlyOutput("TSNEplot_harmony_tpm3", width = "100%")),
+                                 br(),
+                                 conditionalPanel(
+                                   condition = "input.scInput1 == '10X cellranger'",
+                                   plotlyOutput("TSNEplot_harmony_h5_1", width = "100%"),
+                                   br(),
+                                   plotlyOutput("TSNEplot_harmony_h5_2", width = "100%")),
+                          )),
+                          
+                          conditionalPanel(
+                            condition = "input.scAnalysis_integ == 'BEER'",
+                            column(3,
+                                   numericInput("dim.used_intg_beer",
+                                                label = "Dimensions used",
+                                                value = 10)
+                            ),
+                            column(9,
+                                   br(),
+                                   actionButton("runTSNE_intg_beer", "Run TSNE", icon = icon("hand-pointer-o")),
+                                   #textOutput("Intg.done"),
+                                   br(),
+                                   br(),
+                                   conditionalPanel(
+                                     condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                     plotlyOutput("TSNEplot_beer_tpm1", width = "100%"),
+                                     br(),
+                                     plotlyOutput("TSNEplot_beer_tpm2", width = "100%")),
+                                     
+                                   br(),
+                                   conditionalPanel(
+                                     condition = "input.scInput1 == '10X cellranger'",
+                                     plotlyOutput("TSNEplot_beer_h5_1", width = "100%"),
+                                     br(),
+                                     plotlyOutput("TSNEplot_beer_h5_2", width = "100%")),
+                            )),
+                          
+                          conditionalPanel(
+                            condition = "input.scAnalysis_integ == 'scVI'",
+                            column(3,
+                                   numericInput("dim.used_intg_scvi",
+                                                label = "Dimensions used",
+                                                value = 10)
+                            ),
+                            column(9,
+                                   br(),
+                                   actionButton("runTSNE_intg_scvi", "Run TSNE", icon = icon("hand-pointer-o")),
+                                   #textOutput("Intg.done"),
+                                   br(),
+                                   br(),
+                                   conditionalPanel(
+                                     condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                     plotlyOutput("TSNEplot_scvi_tpm1", width = "100%"),
+                                     br(),
+                                     plotlyOutput("TSNEplot_scvi_tpm2", width = "100%"),
+                                     br(),
+                                     plotlyOutput("TSNEplot_scvi_tpm3", width = "100%")),
+                                   br(),
+                                   conditionalPanel(
+                                     condition = "input.scInput1 == '10X cellranger'",
+                                     plotlyOutput("TSNEplot_scvi_h5_1", width = "100%"),
+                                     br(),
+                                     plotlyOutput("TSNEplot_scvi_h5_2", width = "100%")),
+                            )),
+                          
+                          conditionalPanel(
+                            condition = "input.scAnalysis_integ == 'fastMNN'",
+                            column(3,
+                                   numericInput("dim.used_intg_scvi",
+                                                label = "Dimensions used",
+                                                value = 10)
+                            ),
+                            column(9,
+                                   br(),
+                                   actionButton("runTSNE_intg_fastmnn", "Run TSNE", icon = icon("hand-pointer-o")),
+                                   #textOutput("Intg.done"),
+                                   br(),
+                                   br(),
+                                   conditionalPanel(
+                                     condition = "input.scInput1 == 'Raw Counts Matrix'",
+                                     plotlyOutput("TSNEplot_fastmnn_tpm1", width = "100%"),
+                                     br(),
+                                     plotlyOutput("TSNEplot_fastmnn_tpm2", width = "100%"),
+                                     br(),
+                                     plotlyOutput("TSNEplot_fastmnn_tpm3", width = "100%")),
+                                   br(),
+                                   conditionalPanel(
+                                     condition = "input.scInput1 == '10X cellranger'",
+                                     plotlyOutput("TSNEplot_fastmnn_h5_1", width = "100%"),
+                                     br(),
+                                     plotlyOutput("TSNEplot_fastmnn_h5_2", width = "100%")),
+                            ))
+                          ),
+                        
+                        tabPanel("Cell type identification (After Data Integration)",
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'Seurat'",
+                                 column(3,
+                                        br(),
+                                        actionButton("doCELLiD_intg_seurat", "Run CELLiD", icon = icon("hand-pointer-o")),
+                                        #textOutput("CELLiD.done"),
+                                        br()
+                                 ),
+                                 br(),
+                                 br(),
+                                 br(),
+                                 plotlyOutput("Umap_cellid_intg_seurat", width = "100%"),
+                                 plotlyOutput("Umap_cellid_intg_seurat1", width = "100%"),
+                                 br(),
+                                 br(),
+                                 DT::dataTableOutput("ct_intg_seurat.table")
+                                 ),
+                                 
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'Harmony'",
+                                   column(3,
+                                          br(),
+                                          actionButton("doCELLiD_intg_harmony", "Run CELLiD", icon = icon("hand-pointer-o")),
+                                          #textOutput("CELLiD.done"),
+                                          br()
+                                   ),
+                                   br(),
+                                   br(),
+                                   br(),
+                                   plotlyOutput("Umap_cellid_intg_harmony", width = "100%"),
+                                   plotlyOutput("Umap_cellid_intg_harmony1", width = "100%"),
+                                   br(),
+                                   br(),
+                                   DT::dataTableOutput("ct_intg_harmony.table")
+                                   ),
+                                 
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'BEER'",
+                                   column(3,
+                                          br(),
+                                          actionButton("doCELLiD_intg_beer", "Run CELLiD", icon = icon("hand-pointer-o")),
+                                          #textOutput("CELLiD.done"),
+                                          br()
+                                   ),
+                                   br(),
+                                   br(),
+                                   br(),
+                                   plotlyOutput("Umap_cellid_intg_beer", width = "100%"),
+                                   plotlyOutput("Umap_cellid_intg_beer1", width = "100%"),
+                                   br(),
+                                   br(),
+                                   DT::dataTableOutput("ct_intg_beer.table")
+                                   ),
+                                 
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'scVI'",
+                                   column(3,
+                                          br(),
+                                          actionButton("doCELLiD_intg_scvi", "Run CELLiD", icon = icon("hand-pointer-o")),
+                                          #textOutput("CELLiD.done"),
+                                          br()
+                                   ),
+                                   br(),
+                                   br(),
+                                   br(),
+                                   plotlyOutput("Umap_cellid_intg_scvi", width = "100%"),
+                                   plotlyOutput("Umap_cellid_intg_scvi1", width = "100%"),
+                                   br(),
+                                   br(),
+                                   DT::dataTableOutput("ct_intg_scvi.table")
+                                   ),
+                                 
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'fastMNN'",
+                                   column(3,
+                                          br(),
+                                          actionButton("doCELLiD_intg_fastmnn", "Run CELLiD", icon = icon("hand-pointer-o")),
+                                          #textOutput("CELLiD.done"),
+                                          br()
+                                   ),
+                                   br(),
+                                   br(),
+                                   br(),
+                                   plotlyOutput("Umap_cellid_intg_fastmnn", width = "100%"),
+                                   plotlyOutput("Umap_cellid_intg_fastmnn1", width = "100%"),
+                                   br(),
+                                   br(),
+                                   DT::dataTableOutput("ct_intg_fastmnn.table")
+                                   )
+                              ),
+                        
+                        tabPanel("DEGs",
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'Seurat'",
+                                 fluidRow(
+                                   column(3, selectInput("min_pct_intg_seurat",
+                                                         label = "min.pct",
+                                                         choices = c("0.1", "0.25"))
+                                   ),
+                                   
+                                   column(3, selectInput("logfc_intg_seurat",
+                                                         label = "logfc.threshold",
+                                                         choices = c("0.1", "0.25"))
+                                   ),
+                                   
+                                   column(3, selectInput("test.use_intg_seurat",
+                                                         label = "Test use",
+                                                         choices = c("wilcox", "bimod", "roc", "t", "negbinom", "poisson", "LR", "MAST", "DESeq2"))
+                                   ),
+                                   
+                                   column(4,
+                                          actionButton("doDeg_intg_seurat", "Run DEGs", icon = icon("hand-pointer-o"))
+                                   )),
+                                 br(),
+                                 column(9,
+                                        DT::dataTableOutput("Deg.table_intg_seurat")
+                                       # br(),
+                                       # plotlyOutput("Deg3.plot_intg_seurat", width = "100%")
+                                 )),
+                                 
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'Harmony'",
                                    fluidRow(
+                                     column(3, selectInput("min_pct_intg_harmony",
+                                                           label = "min.pct",
+                                                           choices = c("0.1", "0.25"))
+                                     ),
+                                     
+                                     column(3, selectInput("logfc_intg_harmony",
+                                                           label = "logfc.threshold",
+                                                           choices = c("0.1", "0.25"))
+                                     ),
+                                     
+                                     column(3, selectInput("test.use_intg_harmony",
+                                                           label = "Test use",
+                                                           choices = c("wilcox", "bimod", "roc", "t", "negbinom", "poisson", "LR", "MAST", "DESeq2"))
+                                     ),
+                                     
+                                     column(4,
+                                            actionButton("doDeg_intg_harmony", "Run DEGs", icon = icon("hand-pointer-o"))
+                                     )),
+                                   br(),
+                                   column(9,
+                                          DT::dataTableOutput("Deg.table_intg_harmony")
+                                        # br(),
+                                        # plotlyOutput("Deg3.plot_intg_harmony", width = "100%")
+                                   )),
+                                 
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'BEER'",
+                                   fluidRow(
+                                     column(3, selectInput("min_pct_intg_beer",
+                                                           label = "min.pct",
+                                                           choices = c("0.1", "0.25"))
+                                     ),
+                                     
+                                     column(3, selectInput("logfc_intg_beer",
+                                                           label = "logfc.threshold",
+                                                           choices = c("0.1", "0.25"))
+                                     ),
+                                     
+                                     column(3, selectInput("test.use_intg_beer",
+                                                           label = "Test use",
+                                                           choices = c("wilcox", "bimod", "roc", "t", "negbinom", "poisson", "LR", "MAST", "DESeq2"))
+                                     ),
+                                     
+                                     column(4,
+                                            actionButton("doDeg_intg_beer", "Run DEGs", icon = icon("hand-pointer-o"))
+                                     )),
+                                   br(),
+                                   column(9,
+                                          DT::dataTableOutput("Deg.table_intg_beer")
+                                          # br(),
+                                          # plotlyOutput("Deg3.plot_intg_seurat", width = "100%")
+                                   )),
+                                 
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'scVI'",
+                                   fluidRow(
+                                     column(3, selectInput("min_pct_intg_scvi",
+                                                           label = "min.pct",
+                                                           choices = c("0.1", "0.25"))
+                                     ),
+                                     
+                                     column(3, selectInput("logfc_intg_scvi",
+                                                           label = "logfc.threshold",
+                                                           choices = c("0.1", "0.25"))
+                                     ),
+                                     
+                                     column(3, selectInput("test.use_intg_scvi",
+                                                           label = "Test use",
+                                                           choices = c("wilcox", "bimod", "roc", "t", "negbinom", "poisson", "LR", "MAST", "DESeq2"))
+                                     ),
+                                     
+                                     column(4,
+                                            actionButton("doDeg_intg_scvi", "Run DEGs", icon = icon("hand-pointer-o"))
+                                     )),
+                                   br(),
+                                   column(9,
+                                          DT::dataTableOutput("Deg.table_intg_scvi")
+                                          # br(),
+                                          # plotlyOutput("Deg3.plot_intg_seurat", width = "100%")
+                                   )),
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'fastMNN'",
+                                   fluidRow(
+                                     column(3, selectInput("min_pct_intg_fastmnn",
+                                                           label = "min.pct",
+                                                           choices = c("0.1", "0.25"))
+                                     ),
+                                     
+                                     column(3, selectInput("logfc_intg_fastmnn",
+                                                           label = "logfc.threshold",
+                                                           choices = c("0.1", "0.25"))
+                                     ),
+                                     
+                                     column(3, selectInput("test.use_intg_fastmnn",
+                                                           label = "Test use",
+                                                           choices = c("wilcox", "bimod", "roc", "t", "negbinom", "poisson", "LR", "MAST", "DESeq2"))
+                                     ),
+                                     
+                                     column(4,
+                                            actionButton("doDeg_intg_fastmnn", "Run DEGs", icon = icon("hand-pointer-o"))
+                                     )),
+                                   br(),
+                                   column(9,
+                                          DT::dataTableOutput("Deg.table_intg_fastmnn")
+                                          # br(),
+                                          # plotlyOutput("Deg3.plot_intg_seurat", width = "100%")
+                                   ))
+                        ),
+                        
+                        tabPanel("Data Visualization",
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'Seurat'",
+                                   
+                                     column(6,
+                                            uiOutput("deg.gene.select_intg_seurat"),
+                                            plotlyOutput("Deg.plot_intg_seurat", width = "200%"),
+                                            br(),
+                                            plotlyOutput("Deg1.plot_intg_seurat", width = "200%"),
+                                            br(),
+                                            plotOutput("Deg2.plot_intg_seurat", width = "200%")
+                                     )
+                                   ),
+                                 
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'Harmony'",
+                                   
+                                   column(6,
+                                          uiOutput("deg.gene.select_intg_harmony"),
+                                          plotlyOutput("Deg.plot_intg_harmony", width = "200%"),
+                                          br(),
+                                          plotlyOutput("Deg1.plot_intg_harmony", width = "200%"),
+                                          br(),
+                                          plotOutput("Deg2.plot_intg_harmony", width = "200%")
+                                   )
+                                 ),
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'BEER'",
+                                   
+                                   column(6,
+                                          uiOutput("deg.gene.select_intg_beer"),
+                                          plotlyOutput("Deg.plot_intg_beer", width = "200%"),
+                                          br(),
+                                          plotlyOutput("Deg1.plot_intg_beer", width = "200%"),
+                                          br(),
+                                          plotOutput("Deg2.plot_intg_beer", width = "200%")
+                                   )
+                                 ),
+                                 
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'scVI'",
+                                   
+                                   column(6,
+                                          uiOutput("deg.gene.select_intg_scvi"),
+                                          plotlyOutput("Deg.plot_intg_scvi", width = "200%"),
+                                          br(),
+                                          plotlyOutput("Deg1.plot_intg_scvi", width = "200%"),
+                                          br(),
+                                          plotOutput("Deg2.plot_intg_scvi", width = "200%")
+                                   )
+                                 ),
+                                 conditionalPanel(
+                                   condition = "input.scAnalysis_integ == 'fastMNN'",
+                                   
+                                   column(6,
+                                          uiOutput("deg.gene.select_intg_fastmnn"),
+                                          plotlyOutput("Deg.plot_intg_fastmnn", width = "200%"),
+                                          br(),
+                                          plotlyOutput("Deg1.plot_intg_fastmnn", width = "200%"),
+                                          br(),
+                                          plotOutput("Deg2.plot_intg_fastmnn", width = "200%")
+                                   )
+                                 )
+                        ),
+                      )),
+                        
+               
+               tabPanel("Single cell multiomics",
+                        navlistPanel(widths=c(2,10),
+                                     
+                                      tabPanel("Upload your data",
+                                                column(9,
+                                                    column(5,
+                                                       #h4('Load Data:'),
+                                                       wellPanel(
+                                                       titlePanel(h4(p("Load your input data"))),
+                                                       br(),
+                                                       conditionalPanel(
+                                                         condition = "input.scAnalysis_type == 'CITE-seq'",
+                                                      fileInput("tpmFiles2",
+                                                                label = "Cellranger output (Accepted Format: .h5)",
+                                                                accept = ".h5",
+                                                                multiple = T)),
+                                                      conditionalPanel(
+                                                        condition = "input.scAnalysis_type == 'Multiome'",
+                                                        fileInput(inputId = 'tpmFiles3',
+                                                                  label = "Cellranger output (Accepted Format: .h5)",
+                                                                  accept = ".h5")),
+                                                      conditionalPanel(
+                                                        condition = "input.scAnalysis_type == 'Multiome'",
+                                                        shinyFiles::shinyFilesButton(id = 'dir_multi_atac', label = "Path to fragments file", title = "Sheets Folder Selector", multiple = T),
+                                                        verbatimTextOutput("dir_multi_atac", placeholder = TRUE)
+                                                      ),
+                                                      
+                                                     selectInput("scAnalysis_mult",
+                                                                label = "Analysis method",
+                                                                choices = c("Seurat", "MOFA2", "TotalVI"),
+                                                                selected = "Seurat"),
+                                                     selectInput("scAnalysis_type",
+                                                                 label = "scAnalysis type",
+                                                                 choices = c("CITE-seq", "Multiome"),
+                                                                 selected = "H5"),
+                                                    textInput(inputId = "projName2",
+                                                       label = "Project Name",
+                                                       value = "Multiomics"),
+                                                   fluidRow(
+                                                       actionButton("loadButton2", "Load data", icon = icon("hand-o-right")),
+                                                       actionButton("reset_mult", "Reset", icon = icon("repeat"))
+                                                            ),
+                                                          )),
+                                                            
+                                                  column(3,
+                                                     numericInput(inputId = "min.genes2",
+                                                                  label = "Min. genes",
+                                                                  value = 200,
+                                                                  min = 1)
+                                                          ),
+                                                  column(3,
+                                                     numericInput(inputId = "min.cells2",
+                                                                  label = "Min. cells",
+                                                                  value = 3,
+                                                                  min = 1)
+                                                        ),
+                                                  conditionalPanel(
+                                                    condition = "input.scAnalysis_type == 'CITE-seq'",
+                                                  column(3,
+                                                     actionButton("create_seurat2a", "Process", icon = icon("hand-o-right"))
+                                                        )),
+                                                  conditionalPanel(
+                                                    condition = "input.scAnalysis_type == 'Multiome'",
+                                                    column(3,
+                                                           actionButton("create_seurat2b", "Process", icon = icon("hand-o-right"))
+                                                    )),
+                                                  ),
+                                               
+                                               conditionalPanel(
+                                                 condition = "input.scAnalysis_type == 'CITE-seq'",   
+                                                  column(12,
+                                                         h4(p("RNA Data")),
+                                                         withSpinner(dataTableOutput('countdataDT2a')),
+                                                         h4(p("ADT/ATAC Data")),
+                                                         withSpinner(dataTableOutput('countdataDT2b'))
+                                                  )),
+                                               
+                                               conditionalPanel(
+                                                 condition = "input.scAnalysis_type == 'Multiome'",
+                                               column(12,
+                                                      h4(p("RNA Data")),
+                                                      withSpinner(dataTableOutput('countdataDT2c')),
+                                                      h4(p("ADT/ATAC Data")),
+                                                      withSpinner(dataTableOutput('countdataDT2d'))
+                                               )),
+                                     ),
+                                 
+                                     
+                                     tabPanel("Violin Plot",
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_type == 'CITE-seq'",
+                                              column(3,
+                                                     plotOutput("nFeature_RNAPlot2a")
+                                              ),
+                                              column(3,
+                                                     plotOutput("mitoPlot2a")
+                                              ),
+                                              column(3,
+                                                     plotOutput("nCount_RNAPlot2a")
+                                              )),
+                                              
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_type == 'Multiome'",
+                                                column(3,
+                                                       plotOutput("nFeature_RNAPlot2b")
+                                                ),
+                                                column(3,
+                                                       plotOutput("mitoPlot2b")
+                                                ),
+                                                column(3,
+                                                       plotOutput("nCount_RNAPlot2b")
+                                                )),
+                                     ),
+                                     
+                                     tabPanel("Feature Scatter Plot",
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_type == 'CITE-seq'",
+                                              column(5,
+                                                     plotlyOutput("FeatureScatterPlot_mult_a")
+                                              ),
+                                              column(5,
+                                                     plotlyOutput("FeatureScatterPlot_mult_b")
+                                              )),
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_type == 'Multiome'",
+                                                column(5,
+                                                       plotlyOutput("FeatureScatterPlot_mult_c")
+                                                ),
+                                                column(5,
+                                                       plotlyOutput("FeatureScatterPlot_mult_d")
+                                                )
+                                              ),
+                                            ),
+                                     
+                                     tabPanel("Normalization and Variable Gene Plot",
+                                  conditionalPanel(
+                                    condition = "input.scAnalysis_mult == 'Seurat' & input.scAnalysis_type == 'CITE-seq'",
+                                     #textOutput("nVarGenes_mult"),
+                                     fluidRow(
                                        column(3,
-                                              numericInput("var.genes",
+                                              numericInput("var.genes_mult",
                                                            label = "Number of variable genes",
                                                            value = 2000,
                                                            min = 500,
                                                            step = 500)
                                        ),
                                        column(3,
-                                              selectInput("selection.method",
+                                              selectInput("selection.method_mult",
                                                           label = "Selection method",
                                                           choices = c("vst", "dispersion"))
                                        ),
                                        column(4,
-                                              actionButton("findVarGenes", "Identify highly variable genes", icon = icon("hand-pointer-o")),
-                                              #actionButton("doSCTransform", "Run SCTransform", icon = icon("hand-pointer-o"))
-                                              # actionButton("doVarplot", "Plot variable genes", icon = icon("hand-pointer-o"))
+                                              br(),
+                                              actionButton("findVarGenes_mult", "Identify highly variable genes", icon = icon("hand-pointer-o")),
                                        )),
-                                   plotOutput("VarGenes", width = "100%")
-                               )),
-                               ##------PCA---------
-                               tabPanel("PCA", fluidPage(
-                                   hr(),
-                                   tabsetPanel(id="Pca",
-                                               tabPanel(title="PCA Plot", value="P_panel1",
-                                                        br(),
-                                                        fluidRow(
-                                                            column(3,
-                                                                   actionButton("doPCA", "Run PCA", icon = icon("hand-pointer-o"))
+                                     plotOutput("VarGenes_mult", width = "100%")),
+                                  
+                                  conditionalPanel(
+                                    condition = "input.scAnalysis_type == 'Multiome'",
+                                    
+                                    fluidRow(
+                                      
+                                        column(3,
+                                               numericInput("var.genes_mult",
+                                                            label = "Number of variable genes",
+                                                            value = 2000,
+                                                            min = 500,
+                                                            step = 500)
+                                        ),
+                                      column(4,
+                                             br(),
+                                             actionButton("doSCTransform_multi", "Run scTransform", icon = icon("hand-pointer-o")),
+                                             #actionButton("findVarGenes_mult", "Identify highly variable genes", icon = icon("hand-pointer-o")),
+                                             
+                                      )),
+                                    plotOutput("VarGenes_mult1", width = "100%")),
+                                     ),
+                                     
+                                     tabPanel("PCA",
+                                              br(),
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_mult == 'Seurat' & input.scAnalysis_type == 'CITE-seq'",
+                                                tabsetPanel(id="Pca_mult_seurat",
+                                                            tabPanel(title="PCA Plot",
+                                                                     br(),
+                                                                     fluidRow(
+                                                                       column(3,
+                                                                              actionButton("runPCA_mult_seurat", "Run PCA", icon = icon("hand-pointer-o"))
+                                                                       ),
+                                                                     ),
+                                                                     br(),
+                                                                       plotlyOutput("PCAplot_mult_seurat_h5_1", width = "100%"),
+                                                                       
                                                             ),
-                                                        ),
-                                                        selectInput("assays1",
-                                                                    label = "Normalize by:",
-                                                                    choices = c("RNA", "SCT")
-                                                        ),
-                                                        plotlyOutput("PCA2DPlot", width = "100%"),
-                                               ),
-                                               tabPanel(title="PC Gene Visualisation", value="P_panel2",
-                                                        br(),
-                                                        selectInput("select.pc",
-                                                                    label = "PC to plot",
-                                                                    choices = c(1:20)
-                                                        ),
-                                                        fluidRow(
-                                                            column(4,
-                                                                   plotOutput("vizPlot", width = "100%", height = "600px")
+                                                            tabPanel(title="PC Gene Visualisation",
+                                                                     br(),
+                                                                     selectInput("select.pc_mult_seurat",
+                                                                                 label = "PC to plot",
+                                                                                 choices = c(1:20)
+                                                                     ),
+                                                                     fluidRow(
+                                                                       column(4,
+                                                                              plotOutput("vizPlot_mult_seurat", width = "100%", height = "600px")
+                                                                       ),
+                                                                       column(8,
+                                                                              plotOutput("PCHeatmap_mult_seurat", width = "100%", height = "600px")
+                                                                       )
+                                                                     ),
+                                                                     DT::dataTableOutput("PCtable_mult_seurat")
                                                             ),
-                                                            column(8,
-                                                                   plotOutput("PCHeatmap", width = "100%", height = "600px")
-                                                            )
-                                                        ),
-                                                        DT::dataTableOutput("PCtable")
-                                               ),
-
-                                               tabPanel(title="Elbow", value="P_panel4",
-                                                        br(),
-                                                        #actionButton("doElbow", label = "Get Elbow Plot"),
-                                                        #br(),
-                                                        br(),
-                                                        plotOutput("Elbow", width = "100%")
-
-                                               )
-                                   )
-                               )),
-                               tabPanel("Clustering", fluidPage(
-                                   hr(),
-                                   fluidRow(
-                                       column(3,
-                                              numericInput("clus.res",
-                                                           label = "Resolution used",
-                                                           value = 0.6,
-                                                           min = 0.1,
-                                                           step = 0.1)
-                                       ),
-                                       column(3,
-                                              selectInput("dim.used",
-                                                          label = "PC to use",
-                                                          choices = c(10:50)),
-                                       ),
-                                       column(3,
-                                              br(),
-                                              actionButton("findCluster", "Find Clusters", icon = icon("hand-pointer-o")),
-                                              textOutput("cluster.done"),
-                                              br()
-                                       )),
-                                   br(),
-                                   plotlyOutput("Cluster2DPlot_1", width = "100%")
-                               )),
-
-                               tabPanel("UMAP", fluidPage(
-                                   hr(),
-                                   fluidRow(
-                                       column(3,
-                                              numericInput("dim.used",
-                                                           label = "Dimensions used",
-                                                           value = 10)
-                                       ),
-                                       br(),
-                                       column(3,
-                                              br(),
-                                              actionButton("doUmap", "Run UMAP", icon = icon("hand-pointer-o")),
-                                              textOutput("Umap.done"),
-                                              br()
-                                       )),
-                                   br(),
-                                   plotlyOutput("Umap_2d_plot_1", width = "100%")
-
-                               )),
-                               tabPanel("TSNE", fluidPage(
-                                   hr(),
-                                   fluidRow(
-                                       column(3,
-                                              numericInput("dim.used",
-                                                           label = "Dimensions used",
-                                                           value = 10)
-                                       ),
-                                       br(),
-                                       column(3,
-                                              uiOutput("perplex.option")
-                                       ),
-                                       column(3,
-                                              br(),
-                                              actionButton("doTsne", "Run TSNE", icon = icon("hand-pointer-o")),
-                                              textOutput("Tsne.done"),
-                                              br()
-                                       )),
-                                   br(),
-                                   plotlyOutput("Tsne_2d_plot_1", width = "100%")
-
-                               )),
-                               tabPanel("Cell type identification", fluidPage(
-                                   hr(),
-                                   column(3,
-                                          br(),
-                                          actionButton("doCELLiD", "Run CELLiD", icon = icon("hand-pointer-o")),
-                                          textOutput("CELLiD.done"),
-                                          br()
-                                   )),
-                                   br(),
-                                   plotlyOutput("Umap_cellid", width = "100%")
-
-                               ),
-                               tabPanel("DEGs", fluidPage(
-                                   hr(),
-                                   fluidRow(
-
-                                       column(3, selectInput("min_pct",
-                                                             label = "min.pct",
-                                                             choices = c("0.1", "0.25"))
-                                       ),
-
-                                       column(3, selectInput("logfc",
-                                                             label = "logfc.threshold",
-                                                             choices = c("0.1", "0.25"))
-                                       ),
-
-                                       column(3, selectInput("test.use",
-                                                             label = "Test use",
-                                                             choices = c("wilcox", "bimod", "roc", "t", "negbinom", "poisson", "LR", "MAST", "DESeq2"))
-                                       ),
-
-                                       column(4,
-                                              actionButton("doDeg", "Run DEGs", icon = icon("hand-pointer-o"))
-                                       )),
-                                   br(),
-                                   column(9,
-                                          DT::dataTableOutput("Deg.table"),
-                                          br(),
-                                          plotlyOutput("Deg3.plot", width = "100%")
-                                   ))
-                                   #)
-                               ),
-
-                               tabPanel("Data visualization", fluidPage(
-                                   fluidRow(
-                                       column(6,
-                                              uiOutput("deg.gene.select"),
-                                              plotlyOutput("Deg.plot", width = "100%"),
-                                              br(),
-                                              plotlyOutput("Deg1.plot", width = "100%")
-                                       ),
-                                   ))),
-
-                               tabPanel("Trajectory", fluidPage(
-                                   fluidRow(
-                                       column(3,
-                                              br(),
-                                              actionButton("doMonocle3", "Run Monocle3", icon = icon("hand-pointer-o")),
-                                              textOutput("Trajectory.done"),
-                                              br()
-                                       )),
-                                   br(),
-                                   plotlyOutput("Monocle3_plot", width = "100%")
-                               )),
-
-                               tabPanel("Cell-cell communication", fluidPage(
-                                   br(),
-                                   tabsetPanel(id="Cell-cell communication",
-                                               tabPanel(title="Aggregated cell-cell communication network",
-                                                        fluidRow(
-                                                            column(3,
-                                                                   br(),
-                                                                   actionButton("doCC", "Run Cell-cell communication", icon = icon("hand-pointer-o")),
-                                                                   textOutput("CC.done"),
-                                                                   br()
-                                                            )),
-                                                        br(),
-                                                        plotOutput("CC_plot1", width = "50%"),
-                                                        br(),
-                                                        plotOutput("CC_plot2", width = "50%")
-                                               ),
-
-                                               tabPanel(title="Visualize each signaling pathway",
-                                                        fluidRow(
-                                                            column(3,
-                                                                   br(),
-                                                                   actionButton("doCC1", "Visualize each signaling pathway", icon = icon("hand-pointer-o")),
-                                                                   textOutput("CC1.done"),
-                                                                   br()
-                                                            )),
-                                                        br(),
-                                                        uiOutput("CC.gene.select"),
-                                                        column(3, selectInput("layout_cc",
-                                                                              label = "Layout",
-                                                                              choices = c("hierarchy", "circle", "chord"))
-                                                        ),
-                                                        br(),
-                                                        plotOutput("CC_plot3", width = "50%"),
-                                                        br(),
-                                                        plotOutput("CC_plot4", width = "50%")
-
-                                               ),
-
-                                               tabPanel(title="Contribution of each ligand-receptor pair",
-                                                        fluidRow(
-                                                            plotOutput("CC_plot5", width = "50%"),
-                                                            br(),
-                                                            column(3,
-                                                                   br(),
-                                                                   actionButton("doCC2", "Contribution of each ligand-receptor pair", icon = icon("hand-pointer-o")),
-                                                                   textOutput("CC2.done"),
-                                                                   br()
-                                                            )),
-                                                        br(),
-                                                        uiOutput("LR.gene.select"),
-                                                        column(3, selectInput("layout_cc1",
-                                                                              label = "Layout",
-                                                                              choices = c("hierarchy", "circle", "chord"))
-                                                        ),
-                                                        plotOutput("CC_plot6", width = "50%"),
-                                                        br(),
-                                                        uiOutput("cell_group.select"),
-                                                        br(),
-                                                        plotOutput("CC_plot7", width = "50%"),
-                                                        br(),
-                                                        plotOutput("CC_plot8", width = "50%")
-                                               ),
-                                               tabPanel(title="Plot the gene expression",
-                                                        br(),
-                                                        plotOutput("CC_plot9", width = "50%"),
-                                               ),
-                                               tabPanel(title="Other plots",
-                                                        br(),
-                                                        fluidRow(
-                                                            column(3,
-                                                                   br(),
-                                                                   actionButton("doCC3", "Visualize each signaling pathway", icon = icon("hand-pointer-o")),
-                                                                   textOutput("CC3.done"),
-                                                            )),
-                                                        br(),
-                                                        plotOutput("CC_plot10", width = "50%"),
-                                                        br(),
-                                                        plotOutput("CC_plot11", width = "50%"),
-                                                        br(),
-                                                        plotOutput("CC_plot12", width = "50%"),
-                                                        br(),
-                                                        plotOutput("CC_plot13", width = "50%")
-                                               ),
-                                   ))),
-
-                               tabPanel("Differential abundance", fluidPage(
-                                   br(),
-                                   tabsetPanel(id="Milo analysis",
-                                               tabPanel(title="Visualize the data",
-                                                        fluidRow(
-                                                            column(3,
-                                                                   br(),
-                                                                   selectInput("group.by_milo",
-                                                                               label = "Group by",
-                                                                               choices = c("Genotype", "Day")),
+                                                            
+                                                            tabPanel(title="Elbow", 
+                                                                     br(),
+                                                                     br(),
+                                                                     plotOutput("Elbow_mult_seurat", width = "100%")
+                                                            ))),
+                                              
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_mult == 'Seurat' & input.scAnalysis_type == 'Multiome'",
+                                                tabsetPanel(id="Pca_mult_seurat",
+                                                            tabPanel(title="PCA Plot",
+                                                                     br(),
+                                                                     fluidRow(
+                                                                       column(3,
+                                                                              actionButton("runPCA_mult_seurat1", "Run PCA", icon = icon("hand-pointer-o"))
+                                                                       ),
+                                                                     ),
+                                                                     br(),
+                                                                     plotlyOutput("PCAplot_mult_seurat_h5_2", width = "100%"),
+                                                                     
                                                             ),
-                                                            column(3,
-                                                                   br(),
-                                                                   actionButton("do_milo_preprocess", "Visualize", icon = icon("hand-pointer-o")),
-                                                                   br()
-                                                            )),
-                                                        br(),
-                                                        plotOutput("vis_milo_plot1", width = "50%")
-                                                        #br(),
-                                                        #plotOutput("vis_milo_plot2", width = "50%")
-                                               ),
-
-                                               tabPanel(title="Milo analysis",
-                                                        fluidRow(
-
-                                                            column(3,
-                                                                   br(),
-                                                                   selectInput("dim.used_milo",
-                                                                               label = "Dimensions to use",
-                                                                               choices = c(10:50)),
+                                                            tabPanel(title="PC Gene Visualisation",
+                                                                     br(),
+                                                                     selectInput("select.pc_mult_seurat1",
+                                                                                 label = "PC to plot",
+                                                                                 choices = c(1:20)
+                                                                     ),
+                                                                     fluidRow(
+                                                                       column(4,
+                                                                              plotOutput("vizPlot_mult_seurat1", width = "100%", height = "600px")
+                                                                       ),
+                                                                       column(8,
+                                                                              plotOutput("PCHeatmap_mult_seurat1", width = "100%", height = "600px")
+                                                                       )
+                                                                     ),
+                                                                     DT::dataTableOutput("PCtable_mult_seurat1")
                                                             ),
-                                                            br(),
-                                                            br(),
-                                                            actionButton("do_milo", "Analyse", icon = icon("hand-pointer-o")),
-                                                            br()
-                                                        ),
-                                                        br(),
-                                                        plotOutput("vis_milo_plot3", width = "50%"),
-                                                        br(),
-                                                        plotOutput("vis_milo_plot4", width = "50%")
-                                                        #br(),
-                                                        #plotOutput("vis_milo_plot5", width = "50%")
-                                                        #br(),
-                                                        #plotOutput("vis_milo_plot6", width = "50%"),
-                                                        #br(),
-                                                        #plotOutput("vis_milo_plot7", width = "50%")
-                                               ),
-                                   ),
-
-                               )),
-
-                               tabPanel("Test Data",
-                                        br(),
-                                        br(),
-                                        "TPM file (Human): ", tags$a(href="https://drive.google.com/file/d/1i78xdIhsUOj6s7czNOMTuFJRDowb5M51/view?usp=sharing", "Human TPM file"),
-                                        br(),
-                                        br(),
-                                        "Metadata file (Human): ", tags$a(href="https://drive.google.com/file/d/1Jb2noiAKeXLc96K0f7uZ3Rr3Y_PK3gry/view?usp=sharing", "Human Metadata file"),
-                                        br(),
-                                        br(),
-                                        "Cellranger H5 output file for human: ", tags$a(href="https://drive.google.com/file/d/1A1bp8pWAR4Y2qQpFrMM3XRFckNkeY1mg/view?usp=sharing", "Human H5 file"),
-                                        br(),
-                                        br(),
-                                        "Cellranger H5 output file for mouse: ", tags$a(href="https://drive.google.com/file/d/1EsNoJg7_E86KQrRwXPASGNaS4r1Jtzqw/view?usp=sharing", "Mouse H5 file")),
-
-
-
-
-
-
-
-                               ##------END---------
-                   ))
-        ),
-
-        conditionalPanel(
-            condition = "input.Module == 'Single cell data integration Analysis' & input.scAnalysis_integ == 'Seurat'",
-            column(9,
-                   tabsetPanel(type = "pills", id = "tabs",
-                               ## add file preview tab
-
-                               ##------Data Integration using Seurat---------
-
-                               tabPanel("Data Integration and PCA", fluidPage(
-                                   hr(),
-                                   fluidRow(
-                                       column(3,
-                                              br(),
-                                              actionButton("doIntg_seurat", "Running Data Integration", icon = icon("hand-pointer-o")),
-                                              br(),
-                                       )),
-
-                                   column(9,
-                                          br(),
-                                          actionButton("runPCA_intg_seurat", "Run PCA", icon = icon("hand-pointer-o")),
-                                          br(),
-                                          br(),
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'Raw Counts Matrix'",
-                                              plotlyOutput("PCAplot_seurat_tpm1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("PCAplot_seurat_tpm2", width = "100%"),
-                                              br(),
-                                              plotlyOutput("PCAplot_seurat_tpm3", width = "100%")),
-
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'H5'",
-                                              plotlyOutput("PCAplot_seurat_h5_1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("PCAplot_seurat_h5_2", width = "100%"))),
-                               )),
-                               tabPanel("UMAP", fluidPage(
-                                   column(9,
-                                          br(),
-                                          actionButton("runUMAP_intg_seurat", "Run UMAP", icon = icon("hand-pointer-o")),
-                                          #textOutput("Intg.done"),
-                                          br(),
-                                          br(),
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'Raw Counts Matrix'",
-                                              plotlyOutput("UMAPplot_seurat_tpm1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("UMAPplot_seurat_tpm2", width = "100%"),
-                                              br(),
-                                              plotlyOutput("UMAPplot_seurat_tpm3", width = "100%")),
-                                          br(),
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'H5'",
-                                              plotlyOutput("UMAPplot_seurat_h5_1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("UMAPplot_seurat_h5_2", width = "100%")),
-                                   ))),
-
-                               tabPanel("TSNE", fluidPage(
-                                   column(9,
-                                          br(),
-                                          actionButton("runTSNE_intg_seurat", "Run TSNE", icon = icon("hand-pointer-o")),
-                                          #textOutput("Intg.done"),
-                                          br(),
-                                          br(),
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'Raw Counts Matrix'",
-                                              plotlyOutput("TSNEplot_seurat_tpm1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("TSNEplot_seurat_tpm2", width = "100%"),
-                                              br(),
-                                              plotlyOutput("TSNEplot_seurat_tpm3", width = "100%")),
-                                          br(),
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'H5'",
-                                              plotlyOutput("TSNEplot_seurat_h5_1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("TSNEplot_seurat_h5_2", width = "100%")),
-                                   ))),
-
-                               tabPanel("Test Data",
-                                        br(),
-                                        br(),
-                                        column(3, "Human TPM data:",
-                                               br(),
-                                               br(),
-                                               "TPM Matrix File 1 : ", tags$a(href="https://drive.google.com/file/d/11-PaWmvOTytKNF7NIUfrkN0I-M-ANiYl/view?usp=sharing", "TPM Matrix File 1"),
-                                               br(),
-                                               br(),
-                                               "TPM Matrix File 2 : ", tags$a(href="https://drive.google.com/file/d/1l7elllspoZ95xuGfw4NKIBPRzVgy4bp1/view?usp=sharing", "TPM Matrix File 2"),
-                                               br(),
-                                               br(),
-                                               "TPM Matrix File 3: ", tags$a(href="https://drive.google.com/file/d/1fN4hb6OVg_U8FCVg-kqE_GR2g9Ooqnu1/view?usp=sharing", "TPM Matrix File 3"),
-                                               br(),
-                                               br(),
-                                               "Metadata File 1 : ", tags$a(href="https://drive.google.com/file/d/1Qv4Mhheog-fgvR_xXjSltrOyXna5Xrqt/view?usp=sharing", "Metadata File 1"),
-                                               br(),
-                                               br(),
-                                               "Metadata File 2 : ", tags$a(href="https://drive.google.com/file/d/1zwhq8n8MASJjsoRInuIf51pZA82Yv829/view?usp=sharing", "Metadata File 2"),
-                                               br(),
-                                               br(),
-                                               "Metadata File 3: ", tags$a(href="https://drive.google.com/file/d/19tlKX7X1m9rfYgSSrOLOxhmPdcvV414M/view?usp=sharing", "Metadata File 3")),
-                                        br(),
-                                        br(),
-                                        column(4, "Human cellranger output:",
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 1): ", tags$a(href="https://drive.google.com/file/d/1KkvEd4x_Q-9ITboj7ZC3EV7PSllxh8Rn/view?usp=sharing", "Cellranger output 1"),
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 2): ", tags$a(href="https://drive.google.com/file/d/1mEJS8XqieZO_T4MQRPdtdZ1FV_hgg1_e/view?usp=sharing", "Cellranger output 2"),
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 3): ", tags$a(href="https://drive.google.com/file/d/14wYhoNFJP09I5aOaopjqX_xEP3TNgujI/view?usp=sharing", "Cellranger output 3")),
-                                        br(),
-                                        br(),
-                                        column(4, "Mouse cellranger output:",
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 1): ", tags$a(href="https://drive.google.com/file/d/1GkvtSzjIurMsCP5nOZIMv6iMDpajJErs/view?usp=sharing", "Cellranger output 1"),
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 2): ", tags$a(href="https://drive.google.com/file/d/1Ylj3SZblbWplk9D7eLY238JgdY8GQm7w/view?usp=sharing", "Cellranger output 2"),
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 3): ", tags$a(href="https://drive.google.com/file/d/1qgQfrBjC-X_wRoPvb8QRfxqAzavqtVRS/view?usp=sharing", "Cellranger output 3"))),
-                               #))
-                               #))
-                   ))),
-
-        conditionalPanel(
-            condition = "input.Module == 'Single cell data integration Analysis' & input.scAnalysis_integ == 'Harmony'",
-            column(9,
-                   tabsetPanel(type = "pills", id = "tabs",
-                               ## add file preview tab
-
-                               ##------Data Integration using Harmony---------
-
-                               tabPanel("Data Integration and PCA", fluidPage(
-                                   hr(),
-                                   fluidRow(
-                                       column(3,
-                                              br(),
-                                              actionButton("doIntg_harmony", "Running Data Integration", icon = icon("hand-pointer-o")),
-                                              br(),
-                                       )),
-
-                                   column(9,
-                                          br(),
-                                          actionButton("runPCA_intg_harmony", "Run PCA", icon = icon("hand-pointer-o")),
-                                          br(),
-                                          br(),
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'Raw Counts Matrix'",
-                                              plotlyOutput("PCAplot_harmony_tpm1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("PCAplot_harmony_tpm2", width = "100%"),
-                                              br(),
-                                              plotlyOutput("PCAplot_harmony_tpm3", width = "100%")),
-
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'H5'",
-                                              plotlyOutput("PCAplot_harmony_h5_1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("PCAplot_harmony_h5_2", width = "100%"))),
-                               )),
-                               tabPanel("UMAP", fluidPage(
-                                   column(9,
-                                          br(),
-                                          actionButton("runUMAP_intg_harmony", "Run UMAP", icon = icon("hand-pointer-o")),
-                                          #textOutput("Intg.done"),
-                                          br(),
-                                          br(),
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'Raw Counts Matrix'",
-                                              plotlyOutput("UMAPplot_harmony_tpm1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("UMAPplot_harmony_tpm2", width = "100%"),
-                                              br(),
-                                              plotlyOutput("UMAPplot_harmony_tpm3", width = "100%")),
-                                          br(),
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'H5'",
-                                              plotlyOutput("UMAPplot_harmony_h5_1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("UMAPplot_harmony_h5_2", width = "100%")),
-                                   ))),
-
-                               tabPanel("TSNE", fluidPage(
-                                   column(9,
-                                          br(),
-                                          actionButton("runTSNE_intg_harmony", "Run TSNE", icon = icon("hand-pointer-o")),
-                                          #textOutput("Intg.done"),
-                                          br(),
-                                          br(),
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'Raw Counts Matrix'",
-                                              plotlyOutput("TSNEplot_harmony_tpm1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("TSNEplot_harmony_tpm2", width = "100%"),
-                                              br(),
-                                              plotlyOutput("TSNEplot_harmony_tpm3", width = "100%")),
-                                          br(),
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'H5'",
-                                              plotlyOutput("TSNEplot_harmony_h5_1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("TSNEplot_harmony_h5_2", width = "100%")),
-                                   ))),
-
-                               tabPanel("Test Data",
-                                        br(),
-                                        br(),
-                                        column(3, "Human TPM data:",
-                                               br(),
-                                               br(),
-                                               "TPM Matrix File 1 : ", tags$a(href="https://drive.google.com/file/d/11-PaWmvOTytKNF7NIUfrkN0I-M-ANiYl/view?usp=sharing", "TPM Matrix File 1"),
-                                               br(),
-                                               br(),
-                                               "TPM Matrix File 2 : ", tags$a(href="https://drive.google.com/file/d/1l7elllspoZ95xuGfw4NKIBPRzVgy4bp1/view?usp=sharing", "TPM Matrix File 2"),
-                                               br(),
-                                               br(),
-                                               "TPM Matrix File 3: ", tags$a(href="https://drive.google.com/file/d/1fN4hb6OVg_U8FCVg-kqE_GR2g9Ooqnu1/view?usp=sharing", "TPM Matrix File 3"),
-                                               br(),
-                                               br(),
-                                               "Metadata File 1 : ", tags$a(href="https://drive.google.com/file/d/1Qv4Mhheog-fgvR_xXjSltrOyXna5Xrqt/view?usp=sharing", "Metadata File 1"),
-                                               br(),
-                                               br(),
-                                               "Metadata File 2 : ", tags$a(href="https://drive.google.com/file/d/1zwhq8n8MASJjsoRInuIf51pZA82Yv829/view?usp=sharing", "Metadata File 2"),
-                                               br(),
-                                               br(),
-                                               "Metadata File 3: ", tags$a(href="https://drive.google.com/file/d/19tlKX7X1m9rfYgSSrOLOxhmPdcvV414M/view?usp=sharing", "Metadata File 3")),
-                                        br(),
-                                        br(),
-                                        column(4, "Human cellranger output:",
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 1): ", tags$a(href="https://drive.google.com/file/d/1KkvEd4x_Q-9ITboj7ZC3EV7PSllxh8Rn/view?usp=sharing", "Cellranger output 1"),
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 2): ", tags$a(href="https://drive.google.com/file/d/1mEJS8XqieZO_T4MQRPdtdZ1FV_hgg1_e/view?usp=sharing", "Cellranger output 2"),
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 3): ", tags$a(href="https://drive.google.com/file/d/14wYhoNFJP09I5aOaopjqX_xEP3TNgujI/view?usp=sharing", "Cellranger output 3")),
-                                        br(),
-                                        br(),
-                                        column(4, "Mouse cellranger output:",
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 1): ", tags$a(href="https://drive.google.com/file/d/1GkvtSzjIurMsCP5nOZIMv6iMDpajJErs/view?usp=sharing", "Cellranger output 1"),
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 2): ", tags$a(href="https://drive.google.com/file/d/1Ylj3SZblbWplk9D7eLY238JgdY8GQm7w/view?usp=sharing", "Cellranger output 2"),
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 3): ", tags$a(href="https://drive.google.com/file/d/1qgQfrBjC-X_wRoPvb8QRfxqAzavqtVRS/view?usp=sharing", "Cellranger output 3"))),
-                               #))
-                               #))
-                   ))),
-
-        conditionalPanel(
-            condition = "input.Module == 'Single cell data integration Analysis' & input.scAnalysis_integ == 'RLiger'",
-            column(9,
-                   tabsetPanel(type = "pills", id = "tabs",
-                               ## add file preview tab
-
-                               tabPanel("Test Data",
-                                        br(),
-                                        br(),
-                                        column(3, "Human TPM data:",
-                                               br(),
-                                               br(),
-                                               "TPM Matrix File 1 : ", tags$a(href="https://drive.google.com/file/d/11-PaWmvOTytKNF7NIUfrkN0I-M-ANiYl/view?usp=sharing", "TPM Matrix File 1"),
-                                               br(),
-                                               br(),
-                                               "TPM Matrix File 2 : ", tags$a(href="https://drive.google.com/file/d/1l7elllspoZ95xuGfw4NKIBPRzVgy4bp1/view?usp=sharing", "TPM Matrix File 2"),
-                                               br(),
-                                               br(),
-                                               "TPM Matrix File 3: ", tags$a(href="https://drive.google.com/file/d/1fN4hb6OVg_U8FCVg-kqE_GR2g9Ooqnu1/view?usp=sharing", "TPM Matrix File 3"),
-                                               br(),
-                                               br(),
-                                               "Metadata File 1 : ", tags$a(href="https://drive.google.com/file/d/1Qv4Mhheog-fgvR_xXjSltrOyXna5Xrqt/view?usp=sharing", "Metadata File 1"),
-                                               br(),
-                                               br(),
-                                               "Metadata File 2 : ", tags$a(href="https://drive.google.com/file/d/1zwhq8n8MASJjsoRInuIf51pZA82Yv829/view?usp=sharing", "Metadata File 2"),
-                                               br(),
-                                               br(),
-                                               "Metadata File 3: ", tags$a(href="https://drive.google.com/file/d/19tlKX7X1m9rfYgSSrOLOxhmPdcvV414M/view?usp=sharing", "Metadata File 3")),
-                                        br(),
-                                        br(),
-                                        column(4, "Human cellranger output:",
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 1): ", tags$a(href="https://drive.google.com/file/d/1KkvEd4x_Q-9ITboj7ZC3EV7PSllxh8Rn/view?usp=sharing", "Cellranger output 1"),
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 2): ", tags$a(href="https://drive.google.com/file/d/1mEJS8XqieZO_T4MQRPdtdZ1FV_hgg1_e/view?usp=sharing", "Cellranger output 2"),
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 3): ", tags$a(href="https://drive.google.com/file/d/14wYhoNFJP09I5aOaopjqX_xEP3TNgujI/view?usp=sharing", "Cellranger output 3")),
-                                        br(),
-                                        br(),
-                                        column(4, "Mouse cellranger output:",
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 1): ", tags$a(href="https://drive.google.com/file/d/1GkvtSzjIurMsCP5nOZIMv6iMDpajJErs/view?usp=sharing", "Cellranger output 1"),
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 2): ", tags$a(href="https://drive.google.com/file/d/1Ylj3SZblbWplk9D7eLY238JgdY8GQm7w/view?usp=sharing", "Cellranger output 2"),
-                                               br(),
-                                               br(),
-                                               "Cellranger output (Sample 3): ", tags$a(href="https://drive.google.com/file/d/1qgQfrBjC-X_wRoPvb8QRfxqAzavqtVRS/view?usp=sharing", "Cellranger output 3"))),
-
-                               ##------Data Integration using RLiger---------
-
-                               tabPanel("Data Integration and PCA", fluidPage(
-                                   hr(),
-                                   fluidRow(
-                                       column(3,
-                                              br(),
-                                              actionButton("doIntg_rliger", "Running Data Integration", icon = icon("hand-pointer-o")),
-                                              br(),
-                                       )),
-
-                                   column(9,
-                                          br(),
-                                          actionButton("runPCA_intg_rliger", "Run PCA", icon = icon("hand-pointer-o")),
-                                          br(),
-                                          br(),
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'Raw Counts Matrix'",
-                                              plotlyOutput("PCAplot_rliger_tpm1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("PCAplot_rliger_tpm2", width = "100%"),
-                                              br(),
-                                              plotlyOutput("PCAplot_rliger_tpm3", width = "100%")),
-
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'H5'",
-                                              plotlyOutput("PCAplot_rliger_h5_1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("PCAplot_rliger_h5_2", width = "100%"))),
-                               )),
-                               tabPanel("UMAP", fluidPage(
-                                   column(9,
-                                          br(),
-                                          actionButton("runUMAP_intg_rliger", "Run UMAP", icon = icon("hand-pointer-o")),
-                                          #textOutput("Intg.done"),
-                                          br(),
-                                          br(),
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'Raw Counts Matrix'",
-                                              plotlyOutput("UMAPplot_rliger_tpm1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("UMAPplot_rliger_tpm2", width = "100%"),
-                                              br(),
-                                              plotlyOutput("UMAPplot_rliger_tpm3", width = "100%")),
-                                          br(),
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'H5'",
-                                              plotlyOutput("UMAPplot_rliger_h5_1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("UMAPplot_rliger_h5_2", width = "100%")),
-                                   ))),
-
-                               tabPanel("TSNE", fluidPage(
-                                   column(9,
-                                          br(),
-                                          actionButton("runTSNE_intg_rliger", "Run TSNE", icon = icon("hand-pointer-o")),
-                                          #textOutput("Intg.done"),
-                                          br(),
-                                          br(),
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'Raw Counts Matrix'",
-                                              plotlyOutput("TSNEplot_rliger_tpm1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("TSNEplot_rliger_tpm2", width = "100%"),
-                                              br(),
-                                              plotlyOutput("TSNEplot_rliger_tpm3", width = "100%")),
-                                          br(),
-                                          conditionalPanel(
-                                              condition = "input.Module == 'Single cell data integration Analysis' & input.scInput1 == 'H5'",
-                                              plotlyOutput("TSNEplot_rliger_h5_1", width = "100%"),
-                                              br(),
-                                              plotlyOutput("TSNEplot_rliger_h5_2", width = "100%")),
-                                   ))),
-
-                   ))),
-
-        conditionalPanel(
-            condition = "input.Module == 'Single cell multiomics Analysis' & input.scAnalysis_mult == 'Seurat' & input.scAnalysis_type == 'CITE-seq'",
-            column(9,
-                   tabsetPanel(type = "pills", id = "tabs",
-                               ## add file preview tab
-
-                               ##------CITE-seq (Seurat)---------
-
-                               tabPanel("Dimension Reduction (UMAP)", fluidPage(
-                                   hr(),
-
-                                   column(3,
-                                          numericInput("clus.res1",
-                                                       label = "Resolution used",
-                                                       value = 0.6,
-                                                       min = 0.1,
-                                                       step = 0.1)
-                                   ),
-
-                                   column(3,
-                                          selectInput("dim.used1",
-                                                      label = "PC to plot",
-                                                      choices = c(5:50)),
-                                   ),
-                                   fluidRow(
-                                       column(9,
-                                              br(),
-                                              actionButton("runUMAP3", "Run UMAP", icon = icon("hand-pointer-o")),
-                                              #textOutput("Intg.done"),
-                                              br(),
-                                              #),
-                                              #column(6,
-                                              br(),
-                                              plotlyOutput("UMAPplot4_a", width = "100%")),
-                                   ),
-                               )),
-
-
-                               tabPanel("Dimension Reduction (TSNE)", fluidPage(
-                                   hr(),
-                                   column(9,
-                                          br(),
-                                          actionButton("runTSNE3", "Run TSNE", icon = icon("hand-pointer-o")),
-                                          #textOutput("Intg.done"),
-                                          br(),
-                                          br(),
-                                          plotlyOutput("TSNEplot4_a", width = "100%"),
-                                          br(),
-                                   ),
-                               )),
-                               tabPanel("Data visualization", fluidPage(
-                                   hr(),
-                                   column(4,
-                                          actionButton("Vis3", "Visualize", icon = icon("hand-pointer-o"))
-                                   ),
-
-                                   fluidRow(
-                                       column(6,
-                                              uiOutput("vis.gene.select"),
-                                              plotlyOutput("vis.plot", width = "100%"),
-                                              br(),
-                                              uiOutput("vis.gene.select1"),
-                                              plotlyOutput("vis1.plot", width = "100%"),
-                                       ),
-
-                                   ))),
-
-                               tabPanel("Test Data",
-                                        br(),
-                                        br(),
-                                        column(4, "CITE-Seq:",
-                                               br(),
-                                               br(),
-                                               "Cell ranger output: ", tags$a(href="https://drive.google.com/file/d/16MjQIIFqvgZoL3KhKre4kC6hoIWhsKIE/view?usp=sharing", "CITE-seq cell ranger output")),
-                               ),
-                   ))),
-
-        conditionalPanel(
-            condition = "input.Module == 'Single cell multiomics Analysis' & input.scAnalysis_mult == 'Seurat' & input.scAnalysis_type == 'mRNA+scATAC-seq'",
-
-            column(9,
-                   tabsetPanel(type = "pills", id = "tabs",
-                               ## add file preview tab
-
-                               tabPanel("Quality control", fluidPage(
-                                   hr(),
-                                   fluidRow(
-
-                                       column(9,
-                                              plotlyOutput("nCount_ATAC.plot", width = "100%"),
-                                              br(),
-                                              plotlyOutput("nCount_RNA.plot", width = "100%"),
-                                              br(),
-                                              plotlyOutput("percent.mt.plot", width = "100%")),
-                                   ),
-                               )),
-
-                               tabPanel("UMAP", fluidPage(
-
-                                   fluidRow(
-                                       column(5,
-                                              br(),
-                                              numericInput("clus.res2",
-                                                           label = "Resolution used",
-                                                           value = 0.6,
-                                                           min = 0.1,
-                                                           step = 0.1)
-                                       ),
-
-
-                                       column(4,
-                                              br(),
-                                              selectInput("dim.used2",
-                                                          label = "PC to use",
-                                                          choices = c(5:50))
-                                       )),
-
-                                   fluidRow(
-                                       column(9,
-                                              actionButton("doSCTransform_multi", "Run scTransform", icon = icon("hand-pointer-o")),
-                                              br(),
-                                              br(),
-                                              actionButton("runUMAP4", "Run UMAP", icon = icon("hand-pointer-o")),
-                                              #textOutput("Intg.done"),
-                                              br(),
-                                              #),
-                                              #column(6,
-                                              br(),
-                                              plotlyOutput("UMAPplot5_a", width = "100%"),
-                                              br(),
-                                              plotlyOutput("UMAPplot5_b", width = "100%"),
-                                              br(),
-                                              plotlyOutput("UMAPplot5_c", width = "100%")),
-                                   ),
-                               )),
-
-                               tabPanel("TSNE", fluidPage(
-                                   fluidRow(
-                                       column(9,
-                                              br(),
-                                              actionButton("runTSNE4", "Run TSNE", icon = icon("hand-pointer-o")),
-                                              #textOutput("Intg.done"),
-                                              br(),
-                                              br(),
-                                              plotlyOutput("TSNEplot5_a", width = "100%"),
-                                              br(),
-                                              plotlyOutput("TSNEplot5_b", width = "100%"),
-                                              br(),
-                                              plotlyOutput("TSNEplot5_c", width = "100%")),
-
-                                       br(),
-                                   ))),
-
-                               tabPanel("Test Data",
-                                        br(),
-                                        br(),
-                                        column(4, "mRNA + scATAC-seq:",
-                                               br(),
-                                               br(),
-                                               "Cell ranger output: ", tags$a(href="https://drive.google.com/file/d/1JtZNl_euNHVJgzwBlRlKrW6vyVKPlLoP/view?usp=sharing", "Cell ranger output"),
-                                               br(),
-                                               br(),
-                                               "Fragments file: ",  tags$a(href="https://drive.google.com/file/d/1aPK9EsROxO3RFnTC39K1UfXqBvn8DfDI/view?usp=sharing", "Fragments file"),
-                                               br(),
-                                               br(),
-                                               "Fragments index file: ",  tags$a(href="https://drive.google.com/file/d/1DxMsbyMcIi8K2nmxL3GvGtgQLWDEyaUI/view?usp=sharing", "Fragments index file")),
-                               ),
-
-
-                   ))),
-
-        conditionalPanel(
-            condition = "input.Module == 'Single cell multiomics Analysis' & input.scAnalysis_mult == 'MOFA' & input.scAnalysis_type == 'CITE-seq'",
-
-            column(9,
-                   tabsetPanel(type = "pills", id = "tabs",
-                               ## add file preview tab
-
-                               tabPanel("Data overview", fluidPage(
-
-                                   fluidRow(
-                                       br(),
-                                       column(3,
-                                              selectInput("factor",
-                                                          label = "Number of factors",
-                                                          choices = c(2:50))),
-                                       #column(3,
-                                       #       selectInput("nfeatures",
-                                       #                   label = "Number of features",
-                                       #                   choices = c(2:15))),
-                                       #column(3,
-                                       #       selectInput("view",
-                                       #                   label = "View",
-                                       #                   choices = c("RNA", "ADT"))),
-
-                                       #  column(3,
-                                       #       selectInput("factors",
-                                       #                   label = "Color by",
-                                       #                   choices = c("Phenotype", "Combined"))),
-
-                                       column(3,
-                                              br(),
-                                              actionButton("data_overview", "Plot Data Overview", icon = icon("hand-pointer-o")),
-                                       )),
-                                   br(),
-                                   plotOutput("mofa_a", width = "50%"),
-                                   br(),
-                                   plotOutput("mofa_b", width = "100%")
-                                   #br(),
-                                   #plotOutput("factor_a", width = "100%"),
-                                   #br(),
-                                   #plotOutput("factor_b", width = "100%")
-
-                                   #br(),
-                                   #plotOutput("mofa_c", width = "100%")
-                               )),
-
-                               tabPanel("UMAP", fluidPage(
-
-                                   fluidRow(
-                                       br(),
-                                       column(3,
-                                              selectInput("n_neighbors",
-                                                          label = "Number of neighbours",
-                                                          choices = c(5:50))),
-                                       column(3,
-                                              br(),
-                                              actionButton("umap_mofa", "Run UMAP", icon = icon("hand-pointer-o")),
-                                       )),
-                                   plotOutput("umap_mofa_mult", width = "100%"),
-
-                               )),
-
-                               tabPanel("Test Data",
-                                        br(),
-                                        br(),
-                                        column(4, "CITE-Seq:",
-                                               br(),
-                                               br(),
-                                               "Cell ranger output: ", tags$a(href="https://drive.google.com/file/d/11Nxq1eE7f_QFQxAkxydTqg-d6USTDte3/view?usp=sharing", "CITE-seq cell ranger output")),
-                               ),
-                   ))),
-
-        conditionalPanel(
-            condition = "input.Module == 'Flow cytometry Analysis'",
-
-            column(9,
-                   tabsetPanel(type = "pills", id = "tabs",
-                               ## add file preview tab
-
-                               tabPanel("Data Analysis",
-
-                                        fluidPage(
-                                            br(),
-                                            box(
-                                                title = "Load data",
-                                                status = "primary",
-                                                width = 3,
-                                                solidHeader = TRUE,
-                                                collapsible = FALSE,
-                                                collapsed = FALSE,
-                                                fluidPage(
-                                                    tags$div(title='The fcs files to be analyzed. One or multiple fcs files are allowed. When multiple fcs files are selected, cells from each fcs file are combined for analysis.'
-                                                             , fileInput("rawfcs", "Raw FCS files", multiple = TRUE
-                                                                         , accept = c("FCSfile/fcs", '.fcs'))
-                                                             , fileInput("sample_anno", "Meta data", multiple = FALSE, accept = c("Txtfile/txt", '.txt'))
-                                                    )
-                                                    , tags$div(title="Select the list of makers to be used for analysis."
-                                                               , selectInput('markers', 'Markers', choices = NULL, selected = NULL
-                                                                             , selectize = TRUE
-                                                                             , multiple = TRUE)
-                                                    )
-                                                    , tags$div(title="A prefix that will be added to the names of result files."
-                                                               , textInput('project_name', 'Project name', value = 'cytofkit')
-                                                    )
-                                                    , tags$div(title="When multiple fcs files are selected, cell expression data can be merged using one of the four different methods including \"ceil\",\"all\", \"min\",\"fixed\". \n\n\"ceil\" (the default option): up to a fixed number (specified by fixedNum) of cells are sampled without replacement from each fcs file and combined for analysis. \n\n\"all\": all cells from each fcs file are combined for analysis. \n\n\"min\": The minimum number of cells among all the selected fcs files are sampled from each fcs file and combined for analysis. \n\n\"fixed\": a fixed num (specified by fixedNum) of cells are sampled (with replacement when the total number of cell is less than fixedNum) from each fcs file and combined for analysis."
-                                                               , selectInput('merge_method', 'Merge method', choices = c('all', 'min', 'ceil', 'fixed')
-                                                                             , selected = "ceil")
-                                                    )
-                                                    , tags$div(title="Up to fixedNum of cells from each fcs file are used for analysis."
-                                                               , numericInput('fix_number', 'Fixed Number', value = 5000)
-                                                    )
-                                                    , tags$div(title="Data Transformation method, including \"cytofAsinh\"(Customized Asinh transformation for CyTOF data), \"autoLgcl\"(automatic logicle transformation for CyTOF data), \"logicle\"(customize your own parameters for logicle transformation) and \"none\"(if your data is already transformed)."
-                                                               , selectInput('transform_method', 'Tranformation Method'
-                                                                             , choices = c('autoLgcl', 'cytofAsinh', 'logicle', 'arcsinh', 'none'))
-                                                    )
-                                                    , fluidRow(
-                                                        tags$div(title=''
-                                                                 , downloadButton('download_analysis_res', 'Save result'))
-                                                    )
-                                                    , br()
-                                                    , fluidRow(actionButton('reset', 'Reset')
-                                                               , actionButton('submit', 'Submit')
-                                                               , actionButton('quit', 'Quit'))
-                                                )),
-                                            box(
-                                                title = "Dimensionality Reduction",
-                                                status = "primary",
-                                                width = 3,
-                                                height = 630,
-                                                # background = "orange",
-                                                solidHeader = TRUE,
-                                                collapsible = FALSE,
-                                                collapsed = FALSE,
-                                                fluidPage(
-                                                    tags$div(title="The method(s) used for visualizing the clustering results, multiple selections are allowed. Including \"pca\", \"isomap\", \"tsne\". \n\nWARNING: \"tsne\" is the default selection, \"isomap\" may take long time."
-                                                             , selectInput('dr_method', 'Dimensionality reduction methods'
-                                                                           , choices = c('PCA', 'isoMAP', 'tSNE', 'UMAP')
-                                                                           , multiple = TRUE
-                                                                           , selected = 'tSNE')
-                                                    )
-                                                    , tags$div(title=''
-                                                               , numericInput('tsne_perplexity', 'tSNE perplexity', value = 30)
-                                                    )
-                                                    , tags$div(title=''
-                                                               , numericInput('tsne_interation', 'tSNE Max Iterations', value = 1000)
-                                                    )
-                                                    , tags$div(title=''
-                                                               , numericInput('seed', 'Seed', value = 42))
-                                                )),
-                                            box(
-                                                title = "Clustering",
-                                                status = "primary",
-                                                width = 3,
-                                                height = 630,
-                                                # background = "orange",
-                                                solidHeader = TRUE,
-                                                collapsible = FALSE,
-                                                collapsed = FALSE,
-                                                fluidPage(
-                                                    tags$div(title="The method(s) for clustering, including \"DensVM\", \"ClusterX\", \"Rphenograph\", and \"FlowSOM\". "
-                                                             , selectInput('cluster_method', 'Cluster Method(s)'
-                                                                           , choices = c('Rphenograph', 'ClusterX', 'DensVM', 'FlowSOM')
-                                                                           , multiple = TRUE
-                                                                           , selected = c('Rphenograph'))
-                                                    )
-                                                    , tags$div(title="Number of nearest neighbours to pass to Rphenograph."
-                                                               , numericInput('rphenograph_k', 'Rphenograph_k', value = 30)
-                                                    )
-                                                    , tags$div(title="Number of clusters for meta clustering in FlowSOM."
-                                                               , numericInput('flowsom_k', 'FlowSOM_k', value = 40))
-                                                )),
-                                            box(
-                                                title = "Pseudo-time",
-                                                status = "primary",
-                                                width = 3,
-                                                height = 630,
-                                                # background = "orange",
-                                                solidHeader = TRUE,
-                                                collapsible = FALSE,
-                                                collapsed = FALSE,
-                                                fluidPage(
-                                                    tags$div(title="The method used for cellular progression analysis including \"diffusion map\" and \"isomap\"\n\nIf \"NULL\" was selected, no progression estimation will be performed."
-                                                             , selectInput('progressionMethods', 'Cellular Progression'
-                                                                           , choices = c('NULL', 'diffusionmap', 'isomap')))
-                                                )),
-
-                                        )),
-
-                               tabPanel("Test Data",
-                                        br(),
-                                        br(),
-                                        column(4,
-                                               "Example 1 : ", tags$a(href="https://github.com/JinmiaoChenLab/cytofkit2/tree/master/inst/extdata", "Example data 1")),
-                                        br(),
-                                        br(),
-                                        column(4,
-                                               "Example 2 : ", tags$a(href="https://drive.google.com/drive/folders/1EM79nsoRey8ZU6WklyihUmJOFZoLxhIC?usp=sharing", "Example data 2")),
-                               ),
-                   ))
-        ),
-
-        conditionalPanel(
-            condition = "input.Module == 'Imaging mass cytometry Analysis'",
-
-            column(9,
-                   tabsetPanel(type = "pills", id = "tabs",
-                               ## add file preview tab
-
-                               ##------Plot cells---------
-                               tabPanel("Cell Segmentation", fluidPage(
-                                   br(),
-                                   fluidRow(
-                                       column(10,
-                                              plotOutput("plot_cell1", width = "100%")
-                                       )
-                                       #column(6,
-                                       #       verbatimTextOutput("name")
-                                       #)
-                                   ),
-
-                               )),
-
-                               tabPanel("Cell type classification", fluidPage(
-                                   br(),
-                                   fluidRow(
-                                       column(10,
-                                              plotOutput("plot_cell3", width = "100%")
-                                       )
-                                   ),
-
-                               )),
-
-                               tabPanel("Marker expression", fluidPage(
-                                   br(),
-                                   fluidRow(
-                                       column(10,
-                                              uiOutput("sce.select"),
-                                              plotOutput("plot_cell5", width = "100%"),
-                                              br(),
-                                              plotOutput("plot_cell4", width = "100%")
-                                       )
-                                   ),
-
-                               )),
-
-                               tabPanel("Test Data",
-                                        br(),
-                                        br(),
-                                        column(4,
-                                               "Single cell data : ", tags$a(href="https://drive.google.com/file/d/1XgY3WC5ykJkNt5RdGtAq5LMDweugSTEq/view?usp=sharing", "Single cell data")),
-                                        br(),
-                                        br(),
-                                        column(4,
-                                               "Cell mask : ", tags$a(href="https://drive.google.com/file/d/1sWDsaD1i7hRWEkD5NB4814AjL2tfBOj4/view?usp=sharing", "Cell mask")),
-                               ),
-                   ))),
-
-        conditionalPanel(
-            condition = "input.Module == 'Single cell ATAC-seq Analysis'",
-
-            column(9,
-                   tabsetPanel(type = "pills", id = "tabs",
-                               ## add file preview tab
-
-                               ##------ATAC QC plots---------
-                               tabPanel("Computing QC Metrics", fluidPage(
-
-                                   tabPanel(title="ATAC-seq QC Plot", value = "ATAC-seq_QC_panel1",
-                                            br(),
-                                            fluidRow(
-
-                                                column(10,
-                                                       plotlyOutput("TSSPlot", width = "100%"),
-                                                       br(),
-                                                       plotlyOutput("FragmentHistogram", width = "100%"),
-                                                       #br(),
-                                                       #plotlyOutput("VlnPlot_atac", width = "100%"),
-                                                )))
-                               )),
-
-                               ##------Normalization---------
-                               tabPanel("Normalization", fluidPage(
-                                   hr(),
-                                   tabPanel(title="Normalization", value = "norm_ATAC",
-                                            br(),
-                                            fluidRow(
+                                                            
+                                                            tabPanel(title="Elbow", 
+                                                                     br(),
+                                                                     br(),
+                                                                     plotOutput("Elbow_mult_seurat1", width = "100%")
+                                                            ))),
+                                                       ),
+                                     
+                                     tabPanel("Clustering",
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_mult == 'Seurat' & input.scAnalysis_type == 'CITE-seq'",
+                                                br(),
+                                                fluidRow(
+                                                  column(3,
+                                                         numericInput("clus.res_mult_seurat",
+                                                                      label = "Resolution used",
+                                                                      value = 0.6,
+                                                                      min = 0.1,
+                                                                      step = 0.1)
+                                                  ),
+                                                  column(3,
+                                                         selectInput("dim.used_mult_seurat",
+                                                                     label = "PC to use",
+                                                                     choices = c(10:50)),
+                                                  ),
+                                                  column(3,
+                                                         br(),
+                                                         actionButton("findCluster_mult_seurat", "Find Clusters", icon = icon("hand-pointer-o")),
+                                                         #textOutput("cluster1.done"),
+                                                  )),
+                                                br(),
+                                                plotlyOutput("Cluster2DPlot_mult_seurat", width = "100%")
+                                              ),  
+                                              
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_mult == 'Seurat' & input.scAnalysis_type == 'Multiome'",
+                                                br(),
+                                                fluidRow(
+                                                  column(3,
+                                                         numericInput("clus.res_mult_seurat1",
+                                                                      label = "Resolution used",
+                                                                      value = 0.6,
+                                                                      min = 0.1,
+                                                                      step = 0.1)
+                                                  ),
+                                                  column(3,
+                                                         selectInput("dim.used_mult_seurat1",
+                                                                     label = "PC to use",
+                                                                     choices = c(10:50)),
+                                                  ),
+                                                  column(3,
+                                                         br(),
+                                                         actionButton("findCluster_mult_seurat1", "Find Clusters", icon = icon("hand-pointer-o")),
+                                                         #textOutput("cluster1.done"),
+                                                  )),
+                                                br(),
+                                                plotlyOutput("Cluster2DPlot_mult_seurat1", width = "100%")
+                                              ),    
+                                             
+                                     ),
+                                     
+                                     tabPanel("UMAP",
+                                              
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_mult == 'Seurat' & input.scAnalysis_type == 'CITE-seq'",
+                                                br(),
                                                 column(3,
-                                                       actionButton("donorm_ATAC", "Run Normalization", icon = icon("hand-pointer-o")),
-                                                       textOutput("normalize_atac.done"),
-                                                       br()
+                                                       numericInput("dim.used_mult_seurat",
+                                                                    label = "Dimensions used",
+                                                                    value = 10)
+                                                ),
+                                                column(3,
+                                                       numericInput("clus.res_mult_seurat2a",
+                                                                    label = "Resolution used",
+                                                                    value = 0.6,
+                                                                    min = 0.1,
+                                                                    step = 0.1)
+                                                ),
+                                                column(9,
+                                                       br(),
+                                                       actionButton("runUMAP_mult_seurat", "Run UMAP", icon = icon("hand-pointer-o")),
+                                                       br(),
+                                                       br(),
+                                                       plotlyOutput("UMAPplot_mult_seurat_1", width = "100%"),
+                                                       br(),
+                                                       plotlyOutput("UMAPplot_mult_seurat_2", width = "100%"),
+                                                       br(),
+                                                       plotlyOutput("UMAPplot_mult_seurat_3", width = "100%"),
+                                                      )),
+                                              
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_mult == 'Seurat' & input.scAnalysis_type == 'Multiome'",
+                                                br(),
+                                                column(3,
+                                                       numericInput("dim.used_mult_seurat1",
+                                                                    label = "Dimensions used",
+                                                                    value = 10)
+                                                ),
+                                                column(3,
+                                                       numericInput("clus.res_mult_seurat2b",
+                                                                    label = "Resolution used",
+                                                                    value = 0.6,
+                                                                    min = 0.1,
+                                                                    step = 0.1)
+                                                ),
+                                                column(9,
+                                                       br(),
+                                                       actionButton("runUMAP_mult_seurat1", "Run UMAP", icon = icon("hand-pointer-o")),
+                                                       br(),
+                                                       br(),
+                                                       plotlyOutput("UMAPplot1_a", width = "100%"),
+                                                       br(),
+                                                       plotlyOutput("UMAPplot1_b", width = "100%"),
+                                                       br(),
+                                                       plotlyOutput("UMAPplot1_c", width = "100%"),
+                                                       
                                                 )),
-                                            br(),
-                                            plotlyOutput("DepthCor_ATAC", width = "100%"),
-                                   ))),
-
-                               ##------Clustering of ATAC-seq data ------------
-                               tabPanel("Clustering of ATAC-seq", fluidPage(
-                                   hr(),
-                                   fluidRow(
-                                       column(3,
-                                              numericInput("clus.res_atac",
-                                                           label = "Resolution used",
-                                                           value = 0.6,
-                                                           min = 0.1,
-                                                           step = 0.1)
-                                       ),
-                                       br(),
-                                       selectInput("dim.used_atac",
-                                                   label = "PC to plot",
-                                                   choices = c(2:50)
-                                       ),
-                                       column(3,
-                                              actionButton("doCluster_ATAC", "Run Clustering", icon = icon("hand-pointer-o")),
-                                              textOutput("cluster_atac.done"),
-                                              br()
-                                       )),
-                                   br(),
-                                   plotlyOutput("cluster_ATAC", width = "100%"),
-                               )),
-
-                               tabPanel("UMAP on ATAC-seq", fluidPage(
-                                   hr(),
-                                   fluidRow(
-                                       column(3,
-                                              numericInput("dim.used_atac",
-                                                           label = "Dimensions used",
-                                                           value = 10)
-                                       ),
-                                       br(),
-                                       column(3,
-                                              actionButton("doUMAP_ATAC", "Running UMAP", icon = icon("hand-pointer-o")),
-                                              textOutput("umap_atac.done"),
-                                              br()
-                                       )),
-                                   br(),
-                                   plotlyOutput("Umap_ATAC", width = "100%"),
-                               )),
-
-                               tabPanel("TSNE on ATAC-seq", fluidPage(
-                                   hr(),
-                                   fluidRow(
-                                       column(3,
-                                              numericInput("dim.used_atac",
-                                                           label = "Dimensions used",
-                                                           value = 10)
-                                       ),
-                                       br(),
-                                       column(3,
-                                              actionButton("doTSNE_ATAC", "Running TSNE", icon = icon("hand-pointer-o")),
-                                              textOutput("tsne_atac.done"),
-                                              br()
-                                       )),
-                                   br(),
-                                   plotlyOutput("Tsne_ATAC", width = "100%"),
-                               )),
-
-                               tabPanel("Test Data",
-                                        br(),
-                                        br(),
-                                        column(4,
-                                               "Peak/Cell matrix : ", tags$a(href="https://drive.google.com/file/d/1W-_7GkVG6h_VDcFo7erSYb7OmCmRsUAh/view?usp=sharing", "Peak/Cell matrix")),
-                                        br(),
-                                        br(),
-                                        column(4,
-                                               "Fragment file : ", tags$a(href="https://drive.google.com/file/d/1M6rMCM5usMIWMplIB1_K8ng0Us3kfIYS/view?usp=sharing", "Fragment file")),
-                                        br(),
-                                        br(),
-                                        column(4,
-                                               "Fragment index file : ", tags$a(href="https://drive.google.com/file/d/1btpXCtekZGWnIOTQA68JIRS53iO5o87D/view?usp=sharing", "Fragments index file")),
-                                        br(),
-                                        br(),
-                                        column(4,
-                                               "Metadata : ", tags$a(href="https://drive.google.com/file/d/1xDfv2smekXGG8_UqsJakCJpS1pQf6IDk/view?usp=sharing", "Metadata"))),
-                   ))),
-
-        conditionalPanel(
-            condition = "input.Module == 'Spatial Transcriptomics Analysis'",
-            column(9,
-                   tabsetPanel(type = "pills", id = "tabs",
-                               ## add file preview tab
-
-                               ##------Spatial QC plots---------
-                               tabPanel("Spatial QC plots", fluidPage(
-                                   hr(),
-                                   tabsetPanel(id="Spatial_QC",
-                                               tabPanel(title="Spatial QC Plot", value = "Spatial_QC_panel1",
-                                                        br(),
-                                                        fluidRow(
-
-                                                            column(10,
-                                                                   plotOutput("nCount_SpatialPlot", width = "50%"),
-                                                                   br(),
-                                                                   plotOutput("SpatialFeaturePlot", width = "100%"),
-                                                                   #plotlyOutput("nCount_RNAPlot", width = "100%")
-                                                            ),
-                                                        )
-
-                                               )
-
-                                   )
-                               )),
-
-                               ##------Dimension Reduction---------
-                               tabPanel("Dimension Reduction", fluidPage(
-                                   hr(),
-                                   tabsetPanel(id="Pca_spatial",
-                                               tabPanel(title="Dimension Reduction Plot",
-                                                        br(),
-                                                        fluidRow(
-                                                            column(3,
-                                                                   actionButton("doPCA_spatial", "Run", icon = icon("hand-pointer-o"))
-                                                            ),
-
-                                                            column(3,
-                                                                   numericInput("clus.res2",
-                                                                                label = "Resolution used",
-                                                                                value = 0.6,
-                                                                                min = 0.1,
-                                                                                step = 0.1)
-                                                            ),
-                                                        ),
-                                                        br(),
-                                                        plotlyOutput("DimPlot_spatial", width = "100%"),
-                                                        br(),
-                                                        plotOutput("SpatialDimPlot", width = "100%"),
-                                                        br(),
-                                                        fluidRow(
-                                                            column(6,
-                                                                   uiOutput("deg1.gene.select"),
-                                                                   plotOutput("Deg1_spatial.plot", width = "100%"),
-                                                                   #plotlyOutput("Deg1.plot", width = "100%")
-                                                            ),
-                                                        ),
-                                               ),
-                                               tabPanel(title="PC Gene Visualisation",
-                                                        br(),
-                                                        selectInput("select.pc1",
-                                                                    label = "PC to plot",
-                                                                    choices = c(1:20)
-                                                        ),
-                                                        fluidRow(
-                                                            column(4,
-                                                                   plotOutput("vizPlot_spatial", width = "100%", height = "600px")
-                                                            ),
-                                                            column(8,
-                                                                   plotOutput("PCHeatmap_spatial", width = "100%", height = "600px")
-                                                            )
-                                                        ),
-                                                        DT::dataTableOutput("PCtable_spatial")
-                                               )
-                                   )
-                               )),
-
-                               ##------DEGs---------
-                               tabPanel("DEGs for spatial", fluidPage(
-                                   hr(),
-                                   fluidRow(
-
-                                       column(3, selectInput("min_pct_spatial",
-                                                             label = "min.pct",
-                                                             choices = c("0.1", "0.25"))
-                                       ),
-
-                                       column(3, selectInput("logfc_spatial",
-                                                             label = "logfc.threshold",
-                                                             choices = c("0.1", "0.25"))
-                                       ),
-
+                                     ),
+                                     
+                                     tabPanel("tSNE",
+                                              
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_mult == 'Seurat' & input.scAnalysis_type == 'CITE-seq'",
+                                                br(),
+                                                column(3,
+                                                       numericInput("dim.used_mult_seurat",
+                                                                    label = "Dimensions used",
+                                                                    value = 10)
+                                                ),
+                                                column(9,
+                                                       br(),
+                                                       actionButton("runTSNE_mult_seurat", "Run tSNE", icon = icon("hand-pointer-o")),
+                                                       br(),
+                                                       br(),
+                                                       plotlyOutput("TSNEplot_mult_seurat_1", width = "100%"),
+                                                       br(),
+                                                       plotlyOutput("TSNEplot_mult_seurat_2", width = "100%"),
+                                                       br(),
+                                                       plotlyOutput("TSNEplot_mult_seurat_3", width = "100%"),
+                                                )),
+                                                       conditionalPanel(
+                                                         condition = "input.scAnalysis_mult == 'Seurat' & input.scAnalysis_type == 'Multiome'",
+                                                         br(),
+                                                         column(3,
+                                                                numericInput("dim.used_mult_seurat1",
+                                                                             label = "Dimensions used",
+                                                                             value = 10)
+                                                         ),
+                                                         column(9,
+                                                                br(),
+                                                                actionButton("runTSNE_mult_seurat1", "Run tSNE", icon = icon("hand-pointer-o")),
+                                                                br(),
+                                                                br(),
+                                                                plotlyOutput("TSNEplot1_a", width = "100%"),
+                                                                br(),
+                                                                plotlyOutput("TSNEplot1_b", width = "100%"),
+                                                                br(),
+                                                                plotlyOutput("TSNEplot1_c", width = "100%"),
+                                                                
+                                                         ),
+                                                ),
+                                     ),
+                                     
+                                     tabPanel("Cell type identification",
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_mult == 'Seurat' & input.scAnalysis_type == 'CITE-seq'",
+                                                column(3,
+                                                       br(),
+                                                       actionButton("doCELLiD_mult_cite_seurat", "Run CELLiD", icon = icon("hand-pointer-o")),
+                                                       #textOutput("CELLiD.done"),
+                                                       br()
+                                                ),
+                                                br(),
+                                                br(),
+                                                br(),
+                                                plotlyOutput("Umap_cellid_mult_cite_seurat", width = "100%"),
+                                                plotlyOutput("Umap_cellid_mult_cite_seurat1", width = "100%"),
+                                                br(),
+                                                DT::dataTableOutput("ct_cite_seurat.table"),
+                                                column(4,
+                                                       downloadButton('download_cellid_cite_seurat_prediction', 'Download CELLiD predictions (in csv)'),
+                                                )),
+                                              
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_mult == 'Seurat' & input.scAnalysis_type == 'Multiome'",
+                                                column(3,
+                                                       br(),
+                                                       actionButton("doCELLiD_multiome_seurat", "Run CELLiD", icon = icon("hand-pointer-o")),
+                                                       #textOutput("CELLiD.done"),
+                                                       br()
+                                                ),
+                                                br(),
+                                                br(),
+                                                br(),
+                                                plotlyOutput("Umap_cellid_multiome_seurat", width = "100%"),
+                                                plotlyOutput("Umap_cellid_multiome_seurat1", width = "100%"),
+                                                br(),
+                                                DT::dataTableOutput("ct_multiome_seurat.table"),
+                                                column(4,
+                                                       downloadButton('download_cellid_multiome_seurat_prediction', 'Download CELLiD predictions (in csv)'),
+                                                )),
+                                     ),
+                                     
+                                     tabPanel("Data Visualization",
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_mult == 'Seurat' & input.scAnalysis_type == 'CITE-seq'",
+                                              column(4,
+                                                     actionButton("Vis3", "Visualize", icon = icon("hand-pointer-o"))
+                                              ),
+                                              
+                                              fluidRow(
+                                                column(6,
+                                                       uiOutput("vis.gene.select"),
+                                                       plotlyOutput("vis.plot", width = "100%"),
+                                                       br(),
+                                                       uiOutput("vis.gene.select1"),
+                                                       plotlyOutput("vis1.plot", width = "100%"),
+                                                ),
+                                              )
+                                     ),
+                                     conditionalPanel(
+                                       condition = "input.scAnalysis_mult == 'Seurat' & input.scAnalysis_type == 'Multiome'",
                                        column(4,
-                                              actionButton("doDeg_spatial", "Run DEGs", icon = icon("hand-pointer-o"))
-                                       )),
-                                   fluidRow(
-                                       column(6,
-                                              uiOutput("deg2.gene.select"),
-                                              plotOutput("Deg2_spatial.plot", width = "100%"),
+                                              actionButton("Vis3_multiome", "Visualize", icon = icon("hand-pointer-o"))
                                        ),
-                                       column(6,
-                                              DT::dataTableOutput("Deg_spatial.table"),
-                                       )),
-                                   br(),
-                                   fluidRow(column(4,
-                                                   actionButton("doDegn", "Find Spatially Variable Features", icon = icon("hand-pointer-o"))
-                                   )),
-                                   br(),
-                                   fluidRow(
-                                       column(6,
-                                              uiOutput("degn.gene.select"),
-                                              plotOutput("Degn.plot", width = "100%"),
-                                       )),
-                               )),
-
-                               ##------Deconvolution---------
-
-                               tabPanel("Deconvolution using Spotlight", fluidPage(
-                                   hr(),
-                                   fluidRow(
-                                       column(3,
-                                              fileInput(inputId = 'tpmFiles_scRNA',
-                                                        label = "scRNA-seq dataset",
-                                                        multiple = FALSE,
-                                                        accept = ".rds")),
-                                       br(),
-                                       column(3,
-                                              actionButton("loadButton4", "Load scRNA-seq dataset", icon = icon("hand-o-right"),
-                                              ),
-                                       ),
-                                       column(3,
-                                              actionButton("loadexample_deconv", "Load example scRNA-seq dataset", icon = icon("hand-o-right"),
-                                              ),
-                                       ),
-                                       #br(),
+                                       
                                        fluidRow(
-                                           #selectInput("dim.used",
-                                           #            label = "Dimensions",
-                                           #            choices = c(1:50)
-                                           #),
-                                           #br(),
-                                           #fluidRow(
-                                           column(9,
-                                                  br(),
-                                                  actionButton("process_scRNA", "Process scRNA-seq dataset", icon = icon("hand-pointer-o")),
-                                                  br(),
-                                                  #column(6,
-                                                  br(),
-                                                  plotOutput("scRNAPlot", width = "100%")),
+                                         column(6,
+                                                uiOutput("vis.gene.select_multiome"),
+                                                plotlyOutput("vis.plot_multiome", width = "100%"),
+                                                #br(),
+                                                #uiOutput("vis.gene.select_multiome1"),
+                                                #plotlyOutput("vis1.plot_multiome", width = "100%"),
+                                         ),
+                                       ))))
+                                    ),
+               tabPanel("Single cell ATAC-seq",
+                        
+                        navlistPanel(widths=c(2,10),
+                                     
+                                     tabPanel("Upload your data",
+                                              column(9,
+                                                     column(5,
+                                                            #h4('Load Data:'),
+                                                            wellPanel(
+                                                              titlePanel(h4(p("Load your input data"))),
+                                                              br(),
+                                                              
+                                                              selectInput("scInput_atac",
+                                                                          label = "Select Data Input Type",
+                                                                          choices = c("Cellranger atac output"),
+                                                                          selected = "Cellranger atac output"),
+                                                              
+                                                              fileInput("tpmFiles_atac",
+                                                                        label = "Upload Peak/Cell matrix",
+                                                                        accept = ".h5"),
+                                                              
+                                                              fileInput("meta_atac",
+                                                                        label = "Upload Metadata",
+                                                                        accept = ".csv"),
+                                                              
+                                                              shinyFiles::shinyFilesButton(id = 'dir_atac', label = "Path to fragments file", title = "Sheets Folder Selector", multiple = T),
+                                                              verbatimTextOutput("dir_atac", placeholder = TRUE),
+                                                              
+                                                              selectInput("scAnalysis_atac",
+                                                                          label = "Analysis method",
+                                                                          choices = c("Signac", "ArchR"),
+                                                                          selected = "Signac"),
+                                                              
+                                                              textInput(inputId = "projName4",
+                                                                        label = "Project Name",
+                                                                        value = "ATAC"),
+                                                              fluidRow(
+                                                                actionButton("loadButton_atac", "Load Data", icon = icon("hand-o-right")),
+                                                                actionButton("reset_atac", "Reset Data", icon = icon("repeat")),
+                                                              ))),
+                                                     column(3,
+                                                            numericInput(inputId = "min.genes_atac",
+                                                                         label = "Min. genes",
+                                                                         value = 200,
+                                                                         min = 1)
+                                                     ),
+                                                     column(3,
+                                                            numericInput(inputId = "min.cells_atac",
+                                                                         label = "Min. cells",
+                                                                         value = 3,
+                                                                         min = 1)
+                                                     ),
+                                                     column(3,
+                                                            actionButton("create_seurat_atac", "Process", icon = icon("hand-o-right"))
+                                                     )
+                                              ),
+                                              
+                                              column(12,
+                                                     h4(p("ATAC counts")),
+                                                     withSpinner(dataTableOutput('countdataDT_atac')),
+                                              ),
+                                     ),
+                                     
+                                     tabPanel(title="ATAC-seq QC Plot", value = "ATAC-seq_QC_panel1",
+                                              br(),
+                                              fluidRow(
+                                                
+                                                column(5,
+                                                       plotlyOutput("TSSPlot", width = "100%"),
+                                                ),
+                                                column(5,
+                                                       plotlyOutput("FragmentHistogram", width = "100%"),
+                                                ),
+                                                column(4,
+                                                       plotOutput("Vlnplot_atac_1")
+                                                       ),
+                                                column(4,
+                                                       plotOutput("Vlnplot_atac_2")
+                                                ),
+                                                column(4,
+                                                       plotOutput("Vlnplot_atac_3")
+                                                ),
+                                                column(4,
+                                                       plotOutput("Vlnplot_atac_4")
+                                                ),
+                                                column(4,
+                                                       plotOutput("Vlnplot_atac_5")
+                                                ),
+                                            )),
+                                     
+                                     tabPanel("Normalization", fluidPage(
+                                       hr(),
+                                       tabPanel(title="Normalization", value = "norm_ATAC",
+                                                br(),
+                                                fluidRow(
+                                                  column(3,
+                                                         actionButton("donorm_ATAC", "Run Normalization", icon = icon("hand-pointer-o")),
+                                                         textOutput("normalize_atac.done"),
+                                                         br()
+                                                  )),
+                                                br(),
+                                                plotlyOutput("DepthCor_ATAC", width = "100%"),
+                                       ))),
+                                     
+                                     ##------Clustering of ATAC-seq data ------------
+                                     tabPanel("Clustering of ATAC-seq", fluidPage(
+                                       hr(),
+                                       fluidRow(
+                                         column(3,
+                                                numericInput("clus.res_atac",
+                                                             label = "Resolution used",
+                                                             value = 0.6,
+                                                             min = 0.1,
+                                                             step = 0.1)
+                                        
+                                       ),
+                                       column(3,
+                                         selectInput("dim.used_atac",
+                                                     label = "PC to plot",
+                                                     choices = c(2:50),
+                                                     selected = 15 
+                                         ),
+                                       ),
+                                       
+                                         column(3,
+                                                br(),
+                                                actionButton("doCluster_ATAC", "Run Clustering", icon = icon("hand-pointer-o")),
+                                                textOutput("cluster_atac.done"),
+                                                
+                                         
+                                        )),
+                                       br(),
+                                       plotlyOutput("cluster_ATAC", width = "100%"),
+                                     )),
+                                     
+                                     tabPanel("UMAP on ATAC-seq", fluidPage(
+                                       hr(),
+                                       fluidRow(
+                                         column(3,
+                                                numericInput("dim.used_atac",
+                                                             label = "Dimensions used",
+                                                             value = 30)
+                                         ),
+                                         br(),
+                                         column(3,
+                                                actionButton("doUMAP_ATAC", "Running UMAP", icon = icon("hand-pointer-o")),
+                                                textOutput("umap_atac.done"),
+                                                br()
+                                         )),
+                                       br(),
+                                       plotlyOutput("Umap_ATAC", width = "100%"),
+                                     )),
+                                     
+                                     tabPanel("TSNE on ATAC-seq", fluidPage(
+                                       hr(),
+                                       fluidRow(
+                                         column(3,
+                                                numericInput("dim.used_atac",
+                                                             label = "Dimensions used",
+                                                             value = 30)
+                                         ),
+                                         br(),
+                                         column(3,
+                                                actionButton("doTSNE_ATAC", "Running TSNE", icon = icon("hand-pointer-o")),
+                                                textOutput("tsne_atac.done"),
+                                                br()
+                                         )),
+                                       br(),
+                                       plotlyOutput("Tsne_ATAC", width = "100%"),
+                                     )),
+                                    tabPanel("DE Peaks", fluidPage(
+                                      fluidRow(
+                                        
+                                        column(3, selectInput("min_pct_atac",
+                                                              label = "min.pct",
+                                                              choices = c("0.1", "0.25"))
+                                        ),
+                                        
+                                        column(3, selectInput("logfc_atac",
+                                                              label = "logfc.threshold",
+                                                              choices = c("0.1", "0.25"))
+                                        ),
+                                        
+                                        column(3, selectInput("test.use_atac",
+                                                              label = "Test use",
+                                                              choices = c("wilcox", "bimod", "roc", "t", "negbinom", "poisson", "LR", "MAST", "DESeq2"))
+                                        ),
+                                        br(),
+                                        column(3,
+                                               actionButton("doDeg_atac", "Run DEGs", icon = icon("hand-pointer-o"))
+                                        )),
+                                      br(),
+                                      column(9,
+                                             DT::dataTableOutput("Deg_atac.table"),
+                                             br(),
+                                             plotlyOutput("Deg_atac.plot", width = "100%")
+                                      )
+                                    )),
+                                    
+                                    tabPanel("Data visualization",
+                                             
+                                             fluidRow(
+                                               column(6,
+                                                      uiOutput("deg.atac.select"),
+                                                      plotlyOutput("Deg_atac1.plot", width = "100%"),
+                                                      br(),
+                                                      plotlyOutput("Deg_atac2.plot", width = "100%"),
+                                                      br(),
+                                                      plotOutput("Deg_atac3.plot", width = "100%")
+                                               ),
+                                             )
+                                    ),
+                                     
+                            ),
+                        ),
+               tabPanel("Spatial Transcriptomics",
+                        
+                        navlistPanel(widths=c(2,10),
+                                     tabPanel("Overview",
+                                              h2(p("Workflow for Spatial Transcriptomics module")),
+                                              br(),
+                                              imageOutput("spatial_image"),         
+                                     ),
+                                     tabPanel("Upload your data",
+                                              column(9,
+                                                     column(5,
+                                                            #h4('Load Data:'),
+                                                            wellPanel(
+                                                              titlePanel(h4(p("Load your input data"))),
+                                                              br(),
+                                                    
+                                                      selectInput("scInput3",
+                                                                  label = "Select Data Input Type",
+                                                                  choices = c("SpaceRanger output"),
+                                                                  selected = "SpaceRanger output"),
+                                                      selectInput("scAnalysis_sp",
+                                                                  label = "Analysis method",
+                                                                  choices = c("Seurat", "BayesSpace", "DeepST", "SpaGCN"),
+                                                                  selected = "Seurat"),
+                                                      conditionalPanel(
+                                                        condition = "input.scAnalysis_sp == 'Seurat'",
+                                                      fileInput("tpmFile_spatial",
+                                                                label = "Upload H5 output from Spaceranger (Accepted Format: .h5)",
+                                                                accept = ".h5"),
+                                                      ),
+                                                      conditionalPanel(
+                                                        condition = "input.scAnalysis_sp == 'Seurat' | input.scAnalysis_sp == 'BayesSpace'",
+                                                      shinyFiles::shinyDirButton(id = 'dir', label = "Path to spaceRanger output file", title = "Sheets Folder Selector"),
+                                                      verbatimTextOutput("dir", placeholder = TRUE),
+                                                      ),
+                                              
+                                              textInput(inputId = "projName3",
+                                                        label = "Project Name",
+                                                        value = "Spatial"),
+                                              fluidRow(
+                                                actionButton("loadButton3", "Load Data", icon = icon("hand-o-right")),
+                                                actionButton("reset3", "Reset Data", icon = icon("repeat")),
+                                                ))),
+                                              column(3,
+                                                     numericInput(inputId = "min.genes_sp",
+                                                                  label = "Min. genes",
+                                                                  value = 200,
+                                                                  min = 1)
+                                              ),
+                                              column(3,
+                                                     numericInput(inputId = "min.cells_sp",
+                                                                  label = "Min. cells",
+                                                                  value = 3,
+                                                                  min = 1)
+                                              ),
+                                              column(3,
+                                                     actionButton("create_seurat_sp", "Process", icon = icon("hand-o-right"))
+                                                )
+                                              ),
+                                              
+                                              column(12,
+                                                     conditionalPanel(
+                                                       condition = "input.scAnalysis_sp == 'Seurat'",
+                                                     h4(p("Spatial counts")),
+                                                     withSpinner(dataTableOutput('countdataDT_spatial')),
+                                                     h4(p("H&E Image")),
+                                                     withSpinner(plotOutput("h_e", width = "100%")),
+                                              ),
+                                              conditionalPanel(
+                                                condition = "input.scAnalysis_sp == 'BayesSpace'",
+                                                h4(p("Spatial counts")),
+                                                withSpinner(dataTableOutput('countdataDT_bayesspace')),
+                                              )),
+                                    ),
+                                    tabPanel("Quality Control",
+                                             conditionalPanel(
+                                               condition = "input.scAnalysis_sp == 'Seurat'",
+                                             column(5,
+                                                    plotOutput("nCount_SpatialPlot")
+                                             ),
+                                             column(5,
+                                                    plotOutput("SpatialFeaturePlot")
+                                             ),
+                                    ),
+                                    conditionalPanel(
+                                      condition = "input.scAnalysis_sp == 'BayesSpace'",
+                                      h2(p("Quality control plots not available for BayesSpace, please go to normalization step")),
+                                    )),
+                                    tabPanel("FeatureScatter Plot",
+                                             conditionalPanel(
+                                               condition = "input.scAnalysis_sp == 'Seurat'",
+                                             column(6,
+                                                    plotlyOutput("FeatureScatterPlot_sp")
+                                               ),
+                                             ),
+                                             conditionalPanel(
+                                               condition = "input.scAnalysis_sp == 'BayesSpace'",
+                                               h2(p("Feature Scatter plots not available for BayesSpace, please go to normalization step")),
+                                             )
+                                             
+                                             ),
+                                    tabPanel("Normalization and Variable Gene Plot",
+                                             conditionalPanel(
+                                               condition = "input.scAnalysis_sp == 'Seurat'",
+                                             fluidRow(
+                                               column(3,
+                                                      numericInput("var.genes_sp",
+                                                                   label = "Number of variable genes",
+                                                                   value = 2000,
+                                                                   min = 500,
+                                                                   step = 500)
+                                               ),
+                                               column(4,
+                                                      br(),
+                                                      actionButton("doSCTransform_sp", "Run scTransform", icon = icon("hand-pointer-o")),
+                                                      #actionButton("findVarGenes_mult", "Identify highly variable genes", icon = icon("hand-pointer-o")),
+                                                      
+                                               )),
+                                             plotOutput("VarGenes_sp", width = "100%"),
+                                    ),
+                                    conditionalPanel(
+                                      condition = "input.scAnalysis_sp == 'BayesSpace'",
+                                      fluidRow(
+                                        column(3,
+                                               numericInput("var.genes_sp",
+                                                            label = "Number of variable genes",
+                                                            value = 2000,
+                                                            min = 500,
+                                                            step = 500)
+                                        ),
+                                        column(2,
+                                               numericInput("pc_sp",
+                                                            label = "Number of PCs",
+                                                            value = 10,
+                                                            min = 2,
+                                                            step = 1)
+                                        ),
+                                        column(2,
+                                               selectInput("platform",
+                                                           label = "Platform",
+                                                           choices = c("Visium", "ST"),
+                                                           selected = "Visium")
+                                        ),
+                                        column(4,
+                                               br(),
+                                               actionButton("spatialPreprocess", "Run spatialPreprocess", icon = icon("hand-pointer-o")),
+                                               #actionButton("findVarGenes_mult", "Identify highly variable genes", icon = icon("hand-pointer-o")),
+                                               
+                                        )),
+                                    )),
+                                    tabPanel("Gene expression visualization",
+                                             conditionalPanel(
+                                               condition = "input.scAnalysis_sp == 'Seurat'",
+                                             column(4,
+                                                    actionButton("Vis_sp", "Visualize", icon = icon("hand-pointer-o"))
+                                             ),
+                                             
+                                             fluidRow(
+                                               column(6,
+                                                      uiOutput("sp.gene.select"),
+                                                      plotOutput("sp.plot", width = "100%"),
+                                               ),
+                                             )),
+                                             conditionalPanel(
+                                               condition = "input.scAnalysis_sp == 'BayesSpace'",
+                                               column(4,
+                                                      actionButton("Vis_bayesspace", "Visualize", icon = icon("hand-pointer-o"))
+                                               ),
+                                               
+                                               fluidRow(
+                                                 column(6,
+                                                        uiOutput("sp.gene_bayesspace.select"),
+                                                        plotOutput("sp.plot_bayesspace", width = "100%"),
+                                                 ),
+                                               )), 
+                                           ),
+                                    tabPanel("PCA",
+                                             conditionalPanel(
+                                               condition = "input.scAnalysis_sp == 'Seurat'",
+                                             tabsetPanel(id="Pca_sp",
+                                                         tabPanel(title="PCA Plot",
+                                                                  br(),
+                                                                  fluidRow(
+                                                                    column(3,
+                                                                           actionButton("runPCA_spatial", "Run PCA", icon = icon("hand-pointer-o"))
+                                                                    ),
+                                                                  ),
+                                                                  br(),
+                                                                  plotlyOutput("PCAplot_spatial", width = "100%"),
+                                                                  
+                                                         ),
+                                                         tabPanel(title="PC Gene Visualisation",
+                                                                  br(),
+                                                                  selectInput("select.pc_spatial",
+                                                                              label = "PC to plot",
+                                                                              choices = c(1:20)
+                                                                  ),
+                                                                  fluidRow(
+                                                                    column(4,
+                                                                           plotOutput("vizPlot_spatial", width = "100%", height = "600px")
+                                                                    ),
+                                                                    column(8,
+                                                                           plotOutput("PCHeatmap_spatial", width = "100%", height = "600px")
+                                                                    )
+                                                                  ),
+                                                                  DT::dataTableOutput("PCtable_spatial")
+                                                         ),
+                                                         
+                                                         tabPanel(title="Elbow", 
+                                                                  br(),
+                                                                  br(),
+                                                                  plotOutput("Elbow_spatial", width = "100%")
+                                                         ))),
+                                             
+                                             conditionalPanel(
+                                               condition = "input.scAnalysis_sp == 'BayesSpace'",
+                                               fluidRow(
+                                                 column(3,
+                                                        numericInput("cluster_bayesspace1",
+                                                                     label = "Number of clusters (From)",
+                                                                     value = 2,
+                                                                     min = 2,
+                                                                     step = 1)
+                                                 ),
+                                                 column(3,
+                                                        numericInput("cluster_bayesspace2",
+                                                                     label = "Number of clusters (To)",
+                                                                     value = 10,
+                                                                     min = 2,
+                                                                     step = 1)
+                                                 ),
+                                                 column(2,
+                                                        numericInput("pc_bayesspace",
+                                                                     label = "Number of PCs",
+                                                                     value = 10,
+                                                                     min = 2,
+                                                                     step = 1)
+                                                 ),
+                                                 column(2,
+                                                        selectInput("platform",
+                                                                    label = "Platform",
+                                                                    choices = c("Visium", "ST"),
+                                                                    selected = "Visium")
+                                                 ),
+                                                 column(4,
+                                                        br(),
+                                                        actionButton("qtune", "Run", icon = icon("hand-pointer-o")),
+                                                 )),
+                                               plotOutput("qtune_plot", width = "100%"),
+                                             ),
+                                    ),
+                                    
+                                    tabPanel("Clustering",
+                                             conditionalPanel(
+                                               condition = "input.scAnalysis_sp == 'Seurat'",
+                                             fluidRow(
+                                               column(3,
+                                                      numericInput("clus.res_spatial",
+                                                                   label = "Resolution used",
+                                                                   value = 0.6,
+                                                                   min = 0.1,
+                                                                   step = 0.1)
+                                               ),
+                                               column(3,
+                                                      selectInput("dim.used_spatial",
+                                                                  label = "PC to use",
+                                                                  choices = c(10:50)),
+                                               ),
+                                               column(3,
+                                                      br(),
+                                                      actionButton("findCluster_spatial", "Find Clusters", icon = icon("hand-pointer-o")),
+                                                      #textOutput("cluster1.done"),
+                                               )),
+                                             br(),
+                                             plotlyOutput("Cluster2DPlot_spatial", width = "100%")
+                                             ),
+                                             
+                                             conditionalPanel(
+                                               condition = "input.scAnalysis_sp == 'BayesSpace'",
+                                               column(2,
+                                                      numericInput("cluster_bayesspace",
+                                                                   label = "Number of clusters",
+                                                                   value = 5,
+                                                                   min = 2,
+                                                                   step = 1)
+                                               ),
+                                               column(2,
+                                                      numericInput("pc_bayesspace1",
+                                                                   label = "Number of PCs",
+                                                                   value = 10,
+                                                                   min = 2,
+                                                                   step = 1)
+                                               ),
+                                               column(3,
+                                                      selectInput("clust_bayesspace",
+                                                                  label = "Clustering algorithm",
+                                                                  choices = c("mclust", "kmeans"),
+                                                                  selected = "mclust")
+                                               ),
+                                               column(2,
+                                                      selectInput("platform1",
+                                                                  label = "Platform",
+                                                                  choices = c("Visium", "ST"),
+                                                                  selected = "Visium")
+                                               ),
+                                               column(2,
+                                                      selectInput("error_bayesspace",
+                                                                  label = "Error model",
+                                                                  choices = c("normal", "t"),
+                                                                  selected = "t")
+                                               ),
+                                               column(3,
+                                                      br(),
+                                                      actionButton("findCluster_bayesspace", "Find Clusters", icon = icon("hand-pointer-o")),
+                                                      #textOutput("cluster1.done"),
+                                               ),
+                                             plotOutput("cluster_plot_bayesspace", width = "100%"),
+                                             br(),
+                                             textOutput("silhouette_bayesspace")
+                                             ),
+                                    ),
+                                    
+                                    tabPanel("UMAP",
+                                             conditionalPanel(
+                                               condition = "input.scAnalysis_sp == 'Seurat'",
+                                             column(3,
+                                                    numericInput("dim.used_spatial",
+                                                                 label = "Dimensions used",
+                                                                 value = 10)
+                                             ),
+                                             column(3,
+                                                    numericInput("clus.res_spatial",
+                                                                 label = "Resolution used",
+                                                                 value = 0.6,
+                                                                 min = 0.1,
+                                                                 step = 0.1)
+                                             ),
+                                             column(9,
+                                                    br(),
+                                                    actionButton("runUMAP_spatial", "Run UMAP", icon = icon("hand-pointer-o")),
+                                                    br(),
+                                                    br(),
+                                                    plotlyOutput("DimPlot_spatial", width = "100%"),
+                                                    br(),
+                                                    plotOutput("SpatialDimPlot", width = "100%"),
+                                                    br(),
+                                                    textOutput("silhouette_seurat")
+                                             )),
+                                             conditionalPanel(
+                                               condition = "input.scAnalysis_sp == 'BayesSpace'",
+                                               h2(p("Not available for this method"),
+                                             )),
+                                    ),
+                                    tabPanel("Visualize Spatial Domains",
+                                             conditionalPanel(
+                                               condition = "input.scAnalysis_sp == 'Seurat'",
+                                             column(4,
+                                                    actionButton("Vis_sp1", "Visualize", icon = icon("hand-pointer-o"))
+                                             ),
+                                             
+                                             fluidRow(
+                                               column(6,
+                                                      uiOutput("sp.cluster.select"),
+                                                      plotOutput("sp1.plot", width = "100%"),
+                                               ),
+                                             )),
+                                             
+                                             conditionalPanel(
+                                               condition = "input.scAnalysis_sp == 'BayesSpace'",
+                                               h2(p("Not available for this method")),
+                                             ),
+                                          ),
+                                    tabPanel("Integrate with single cell data",
+                                             conditionalPanel(
+                                               condition = "input.scAnalysis_sp == 'Seurat'",
+                                             column(3,
+                                                    fileInput(inputId = 'tpmFiles_scRNA',
+                                                              label = "scRNA-seq dataset",
+                                                              multiple = FALSE,
+                                                              accept = ".rds")),
+                                             
+                                             column(2,
+                                               selectInput("dim.used_sc",
+                                                           label = "Dimensions",
+                                                           choices = c(1:50),
+                                                           selected = "30"),
+                                             ),
+                                             
+                                             column(2,
+                                               numericInput("num.genes_sc",
+                                                           label = "Number of genes",
+                                                           value = 2000,
+                                                           min = 500,
+                                                           step = 500)
+                                               ),
+                                             
+                                             br(),
+                                             column(3,
+                                                    actionButton("loadButton_process_sp", "Load scRNA-seq dataset", icon = icon("hand-o-right"),
+                                                    ),
+                                             ),
+                                             
+                                             column(12,
+                                                    br(),
+                                                    actionButton("process_scRNA", "Process reference dataset", icon = icon("hand-pointer-o")),
+                                                    br(),
+                                                    #column(6,
+                                                    br(),
+                                                    plotOutput("scRNAPlot", width = "100%")),
+                                            
+                                            column(9,
+                                                br(),
+                                                actionButton("vis_spRNA", "Visualise spatial dataset", icon = icon("hand-pointer-o")),
+                                                br(),
+                                                br(),
+                                                plotOutput("spRNAPlot", width = "100%")),
+                                            
+                                    
+                                    column(9,
                                            br(),
-                                           column(9,
-                                                  br(),
-                                                  actionButton("vis_spRNA", "Visualise spatial dataset", icon = icon("hand-pointer-o")),
-                                                  br(),
-                                                  br(),
-                                                  plotOutput("spRNAPlot", width = "100%")),
+                                           actionButton("doDeconv", "Deconvolute", icon = icon("hand-pointer-o")),
                                            br(),
-                                           #),
-                                           column(9,
-                                                  br(),
-                                                  actionButton("get_markers", "Get Marker Genes", icon = icon("hand-pointer-o")),
-                                                  br(),
-                                                  br(),
-                                                  actionButton("doDeconv", "Deconvolute", icon = icon("hand-pointer-o")),
-                                                  br(),
-                                                  br(),
-                                                  plotOutput("DeconvPlot", width = "100%")),
-                                           br(),
-                                       )))),
-
-                                   tabPanel("Test Data",
-                                            br(),
-                                            br(),
-                                            column(6, "Test Data:",
-                                                   br(),
-                                                   br(),
-                                                   "Spatial data download: ", tags$a(href="https://drive.google.com/drive/folders/1sw6Jgn-voHmomhkm8Xm2E37hiqn4ChAT?usp=sharing", "Spatial Data download"))),
-
-
-
-
-                              ))),
-
-    )
-)
-
-
-
-dbHeader <- dashboardHeader(title = "ezSinglecell")
-dbHeader$children[[2]]$children <-  tags$a(href='https://github.com/JinmiaoChenLab',
-                                           tags$img(src='https://avatars1.githubusercontent.com/u/8896007?s=400&u=b0029c2e64f405ea0a46d311239b674a430ec77c&v=4'
-                                                    ,height='60',width='60', align='left')
-                                           , tags$div('ezsinglecell', style='color:white;font-family:arial rounded MT bold'))
-
-dashboardPage(title = "ezSinglecell : An integrated one-stop single-cell analysis toolbox for bench scientists",
-	      skin = "yellow",
-              dbHeader,
-              dashboardSidebar(collapsed = TRUE,
-                               sidebarMenu(id = "sbm",
-                                           menuItem(tags$p(style = "display:inline;font-size: 20px;", ""), tabName = "seurat", icon = icon('cog'))
-
-
-                               )# end of sidebarMenu
-              ),#end of dashboardSidebar
-              dashboardBody(
-                  #includeCSS("www/custom.css")
-                  useShinyalert()
-                  , shinyjs::useShinyjs()
-                  , tabItem(
-                      tabName = "seurat"
-                      , shiny_one_panel
-                  ) # End of tabItem
-
-              )# end of dashboard body
-)# end of dashboard page
+                                           uiOutput("ct.select"),
+                                           plotOutput("DeconvPlot", width = "100%")
+                                           ),
+                                    ),
+                                    conditionalPanel(
+                                      condition = "input.scAnalysis_sp == 'BayesSpace'",
+                                      h2(p("Not available for this method")),
+                                    ),
+                              )),
+                                
+                        ),
+               tabPanel("Help",
+                        wellPanel(
+                          HTML(
+                            '
+      <p align="center" width="4">Singapore Immunology Network, Agency for Science, Technology and Research (A*STAR)</p>
+      <p align="center" width="4">Github: <a href="https://github.com/JinmiaoChenLab/">https://github.com/JinmiaoChenLab/</a></p>
+      <p align="center" width="4">Created by: <a href="mailto:Chen_Jinmiao@immunol.a-star.edu.sg">Jinmiao Chen Lab</a> </p>'
+                          ))
+                        
+                                              
+                                              
+                        
+                        
+                        )
+               
+               )
+)))
