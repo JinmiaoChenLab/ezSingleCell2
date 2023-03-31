@@ -1,1 +1,3 @@
-Module 1: scRNA-seq module
+**Module 1: scRNA-seq module**
+
+For single cell RNA-seq module, the test dataset of 2,700 Human peripheral blood mononuclear cells (from Seurat guided clustering tutorial dataset) was downloaded from 10X website (https://cf.10xgenomics.com/samples/cell/pbmc3k/pbmc3k filtered gene bc matrices.tar.gz).
