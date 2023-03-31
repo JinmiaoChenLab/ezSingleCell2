@@ -1,8 +1,11 @@
 **Module 1: scRNA-seq module**
 
 The single cell RNA-seq module accepts 3 data formats namely:
+
 a) Gene counts (in text format),
+
 b) 10X cellranger output, and
+
 c) Seurat object
 
 For gene counts, the test dataset of 2,700 Human peripheral blood mononuclear cells (from Seurat guided clustering tutorial dataset) was downloaded from 10X website (https://cf.10xgenomics.com/samples/cell/pbmc3k/pbmc3k filtered gene bc matrices.tar.gz) or https://drive.google.com/file/d/1zoCaPKI3mV_BOJM4RPpiO3zW949Y2azq/view?usp=share_link
