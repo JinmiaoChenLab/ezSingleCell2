@@ -19,3 +19,6 @@ For Cellranger output, the data can be found at the google drive as below:
 1. Batch 1 data (https://drive.google.com/file/d/11yc2MvzQAlSvk_BCSr9LqQjZ1lXuEwRX/view?usp=share_link)
 
 2. Batch 2 data (https://drive.google.com/file/d/17ShgTTMx8k8IpENqKDOiPH6Fx-ns4JVX/view?usp=share_link)
+
+![integrate_old](https://user-images.githubusercontent.com/8286779/229039875-0b85ad16-1cbb-4ca3-9ecb-f4c67d9f4789.png)
+
