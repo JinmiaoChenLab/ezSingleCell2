@@ -6,6 +6,6 @@ For 10X Visium, ezSingleCell accepts data in the form of 10X SpaceRanger output.
 
 ezSingleCell also offers analysis support for sub-cellular resolution data such as data acquired using the **Xenium** platform. Users can perform clustering analysis and interactively visualize the expression patterns at sub-cellular level. In addition, users can zoom into a certain section to have a closer look at the cellular composition and inter-cellular interactions. Users can also view the expression profile of each gene on the tissue slice.
 
-The test dataset for Xenium can be downloaded using the following commands :
+The test dataset for Xenium can be downloaded using the link :
 
-wget https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip
+https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip
