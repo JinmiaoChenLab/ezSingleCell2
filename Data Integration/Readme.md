@@ -1,11 +1,10 @@
 **Module 2 : Data Integration Module**
 
-The data integration module accepts 2 data formats namely:
+ezSingleCell uses 3 different methods to perform data integration namely Seurat, Harmony and fastMNN. It accepts data in two different formats namely:
 
 1. Gene counts (in text format), or
 
 2. Cell Ranger output
-
 
 For gene counts, the test gene expression dataset comprising of 500 cells from each batch was downloaded from:
 
