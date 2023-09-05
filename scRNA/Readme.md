@@ -10,7 +10,7 @@ c) Seurat object
 
 **For gene counts**, the test dataset of 2,700 Human peripheral blood mononuclear cells (from Seurat guided clustering tutorial dataset) was downloaded either from:
 
-1. 10X website (https://cf.10xgenomics.com/samples/cell/pbmc3k/pbmc3k filtered gene bc matrices.tar.gz) or 
+1. 10X website (https://cf.10xgenomics.com/samples/cell/pbmc3k/pbmc3k_filtered_gene_bc_matrices.tar.gz) or 
 
 2. Google drive link (https://drive.google.com/file/d/1zoCaPKI3mV_BOJM4RPpiO3zW949Y2azq/view?usp=share_link)
 
