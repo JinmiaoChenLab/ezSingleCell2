@@ -15,3 +15,5 @@ ezSingleCell also offers analysis support for sub-cellular resolution data such 
 The test dataset for Xenium can be downloaded using the link :
 
 https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip
+
+![image](https://github.com/JinmiaoChenLab/ezSingleCell2/assets/8286779/2095ddfb-9168-426f-a7e6-d945c528a2b0)
