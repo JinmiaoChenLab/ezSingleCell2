@@ -11,4 +11,4 @@ library(shiny)
 
 Please note: The stand-alone version only supports analysis of user's own data. For running example files, please use the web server at 
 
-![overview](https://user-images.githubusercontent.com/8286779/229040832-dc4c7e79-6a8c-4799-9ba2-85404322dd41.png)
+![Picture1](https://github.com/JinmiaoChenLab/ezSingleCell2/assets/8286779/874d1a54-4ba4-4e24-ba9e-ba5e9c98bed5)
