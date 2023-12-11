@@ -1,4 +1,4 @@
-*Module 5: scATAC-seq module*
+**Module5: scATACseq module**
 
 The single cell ATAC-seq module accepts input in 10X CellRanger-atac format that comprises of :
 
