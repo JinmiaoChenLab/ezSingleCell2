@@ -1,4 +1,4 @@
-![image](https://github.com/JinmiaoChenLab/ezSingleCell2/assets/8286779/97456794-4556-4e5c-b717-d060e2458e0f)**Module 3: Spatial Transcriptomics module**
+**Module 3: Spatial Transcriptomics module**
 
 The Spatial Transcriptomics module offers analysis for 10X Visium and Xenium data. 
 
