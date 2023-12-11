@@ -22,4 +22,7 @@ For Cellranger output, the data can be found at the google drive as below:
 
 ![image](https://github.com/JinmiaoChenLab/ezSingleCell2/assets/8286779/b3778c99-400f-4aa9-a2d1-cec7c0e5c1c5)
 
+![image](https://github.com/JinmiaoChenLab/ezSingleCell2/assets/8286779/b8fd458f-9338-4903-b889-495e1d37f3be)
+
+
 
