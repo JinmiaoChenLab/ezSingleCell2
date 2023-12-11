@@ -1,6 +1,6 @@
 **Module 2 : Data Integration Module**
 
-ezSingleCell uses 3 different methods to perform data integration namely Seurat, Harmony and fastMNN. It accepts data in two different formats namely:
+ezSingleCell uses 4 different methods (namely Seurat, Harmony, scVI and fastMNN) to perform data integration. It accepts data in two different formats namely:
 
 1. Gene counts (in text format), or
 
