@@ -1,4 +1,4 @@
-**Module 4: scRNA-seq module**
+**Module 4: scMultiomics module**
 
 The single cell Multiomics module can perform CITE-seq (RNA + Protein) and 10X Multiome (RNA + ATAC) analysis. It accepts input in 10X cellranger format. 
 
