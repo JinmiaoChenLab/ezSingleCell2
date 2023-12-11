@@ -20,7 +20,8 @@ For Cellranger output, the data can be found at the google drive as below:
 
 2. Batch 2 data (https://drive.google.com/file/d/17ShgTTMx8k8IpENqKDOiPH6Fx-ns4JVX/view?usp=share_link)
 
-![image](https://github.com/JinmiaoChenLab/ezSingleCell2/assets/8286779/ced208ce-078e-461a-b98c-c19fc4a5b354)
+![image](https://github.com/JinmiaoChenLab/ezSingleCell2/assets/8286779/74d27ad1-0d8a-4a46-9090-2843cc95f841)
+
 
 
 
