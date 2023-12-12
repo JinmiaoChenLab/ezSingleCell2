@@ -8,6 +8,7 @@ b) Type the commands in your R console :
 
 library(shiny)
 
+runGist("https://gist.github.com/raman91/5171381ae540bc7f58f43f79af2c7d6d")
 
 Please note: The stand-alone version only supports analysis of user's own data. For running example files, please use the web server at 
 
